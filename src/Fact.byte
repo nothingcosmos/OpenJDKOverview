@@ -1,0 +1,74 @@
+Compiled from "Fact.java"
+public class Fact extends java.lang.Object{
+public Fact();
+  Code:
+   0:	aload_0
+   1:	invokespecial	#1; //Method java/lang/Object."<init>":()V
+   4:	return
+
+public static void main(java.lang.String[]);
+  Code:
+   0:	iconst_0
+   1:	istore_1
+   2:	iload_1
+   3:	ldc	#2; //int 100000
+   5:	if_icmpge	47
+   8:	iload_1
+   9:	sipush	1000
+   12:	irem
+   13:	invokestatic	#3; //Method factIf:(I)I
+   16:	iload_1
+   17:	sipush	1000
+   20:	irem
+   21:	invokestatic	#4; //Method factFor:(I)I
+   24:	if_icmpne	30
+   27:	goto	41
+   30:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   33:	ldc	#6; //String not eq\n
+   35:	invokevirtual	#7; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   38:	goto	47
+   41:	iinc	1, 1
+   44:	goto	2
+   47:	getstatic	#5; //Field java/lang/System.out:Ljava/io/PrintStream;
+   50:	ldc	#8; //String OK
+   52:	invokevirtual	#7; //Method java/io/PrintStream.println:(Ljava/lang/String;)V
+   55:	return
+
+public static int factIf(int);
+  Code:
+   0:	iload_0
+   1:	iconst_1
+   2:	if_icmple	17
+   5:	iload_0
+   6:	iload_0
+   7:	iconst_1
+   8:	isub
+   9:	invokestatic	#3; //Method factIf:(I)I
+   12:	imul
+   13:	istore_1
+   14:	goto	19
+   17:	iconst_1
+   18:	istore_1
+   19:	iload_1
+   20:	ireturn
+
+public static int factFor(int);
+  Code:
+   0:	iconst_1
+   1:	istore_1
+   2:	iconst_1
+   3:	istore_2
+   4:	iload_2
+   5:	iload_0
+   6:	if_icmpgt	19
+   9:	iload_1
+   10:	iload_2
+   11:	imul
+   12:	istore_1
+   13:	iinc	2, 1
+   16:	goto	4
+   19:	iload_1
+   20:	ireturn
+
+}
+

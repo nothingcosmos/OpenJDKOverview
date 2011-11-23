@@ -1,0 +1,815 @@
+C1コンパイラの内部構造
+###############################################################################
+
+大まかなコンパイルの概要
+===============================================================================
+
+.. image:: png/Design_of_the_Java_HotSpot_Client_Compiler_for_Java6.png
+
+method単位で、BytecodeからHIRへの変換
+
+HIRからLIRへの変換
+
+LIRからMachine codeへの変換
+
+
+目次
+===============================================================================
+
+BytecodeからHIRへの変換
+
+HIRの構造
+
+HIRレベルでの最適化
+
+HIRからLIRへの変換
+
+LIRの構造
+
+LIRレベルでの最適化
+
+LIRからAssemblerへの変換
+
+sample code factIf
+===============================================================================
+
+入力ソースコードfactIf ::
+
+  public static int factIf(int n) {
+    int p;
+    if (n > 1) {
+      p = n * factIf(n - 1);
+    } else {
+      p = 1;
+    }
+    return p;
+  }
+
+
+factIf Bytecode ::
+
+  public static int factIf(int):
+  Code:
+  0:   iload_0
+  1:   iconst_1
+  2:   if_icmple       17
+  5:   iload_0
+  6:   iload_0
+  7:   iconst_1
+  8:   isub
+  9:   invokestatic    #3; //Method factIf:(I)I
+  12:  imul
+  13:  istore_1
+  14:  goto    19
+  17:  iconst_1
+  18:  istore_1
+  19:  iload_1
+  20:  ireturn
+
+factIf HIR CFG
+
+.. image:: png/factIf_HIR_CFG.png
+
+factIf HIR DFG
+
+.. image:: png/factIf_HIR_DFG.png
+
+factIf HIR::
+
+  static jint Fact.factIf(jint)
+  B9:
+    i4 = method parameter
+    v32 = std entry B0
+  B0:
+    i5 = 1
+    v6 = if i4 <= i5 then B2 else B1
+  B1:
+    i7 = 1
+    i8 = i4 - i7
+    v15 = if i8 <= i7 then B7 else B6
+  B7:
+    i21 = 1
+    v22 = goto B8
+  B6:
+    i16 = 1
+    i17 = i8 - i16
+    i18 = invokestatic(i17) Fact.factIf(I)I
+    i19 = i8 * i18
+    v20 = goto B8
+  B8:
+    i23 = [i19,i21]
+    v24 = goto B4
+  B4:
+    i25 = i4 * i23
+    v26 = goto B3
+  B2:
+    i27 = 1
+    v28 = goto B3
+  B3:
+    i29 = [i25,i27]
+    i30 = ireturn i29
+
+
+factIf Optimized HIR ::
+
+  static jint Fact.factIf(jint)
+  B9:
+    i4 = method parameter
+    v32 = std entry B0
+  B0:
+    i5 = 1
+    v6 = if i4 <= i5 then B2 else B1
+  B1:
+                                     // deleted i7 = 1
+    i8 = i4 - i7
+    v15 = if i8 <= i7 then B7 else B6
+  B7:
+                                     // deleted i21 = 1
+    v22 = goto B8
+  B6:
+    // deleted i16 = 1
+    i17 = i8 - i5                    // replaced i17 = i8 - i16
+    i18 = invokestatic(i17) Fact.factIf(I)I
+    i19 = i8 * i18
+    v20 = goto B8
+  B8:
+    i23 = [i19,i5]                   // replaced i23 = [i19,i21]
+                                     // deleted v24 = goto B4
+                                     // deleted B4:
+    i25 = i4 * i23
+    v26 = goto B3
+  B2:
+                                     // deleted i27 = 1
+    v28 = goto B3
+  B3:
+    i29 = [i25,i5]                   // replaced i29 = [i25,i27]
+    i30 = ireturn i29
+
+
+@todo translate LIR
+
+HIR to LIR overview
+do_IfOpが分かりやすい
+
+基本的には、HIRからLIRへシーケンシャルに変換する
+BBの入り口処理とかは遣るけどさ
+
+factIf translate HIR to LIR ::
+
+  #          #     #     #
+  label B9
+    std_entry
+    move     ecx   R41
+    branch   AL    B0
+  label B0
+    cmp      R41   1
+    branch   LE    B2
+    branch   AL    B1
+  label B1
+    move     R41   R42
+    sub      R42   1     R42
+    cmp      R42   1
+    branch   LE    B7
+    branch   AL    B6
+  label B6
+    move     R42   R43
+    sub      R43   1     R43
+    move     R43   ecx
+    static call [static jint Fact.factIf(jint)]  result eax bci:9
+    move     eax   R44
+    move     R44   R45
+    mul      R45   R42   R45
+    move     R45   R46
+    branch   AL    B8
+  label B7
+    move     1     R46
+    branch   AL    B8
+  label B8
+    move     R46   R47
+    mul      R47   R41
+    move     R47   R48
+    branch   AL    B3
+  label B2
+    move     1     B48
+    branch   AL    B3
+  label B3
+    move     R48   eax
+    return   eax
+
+
+.. graphviz::
+
+  digraph factIf {
+
+  B9 [label =
+  "B9:
+    std_entry
+    move     ecx   R41
+    branch   AL    B0
+  "];
+
+  B0 [label =
+  "B0:
+    cmp      R41   1
+    branch   LE    B2
+    branch   AL    B1
+  "];
+  B1 [label =
+  "B1:
+    move     R41   R42
+    sub      R42   1     R42
+    cmp      R42   1
+    branch   LE    B7
+    branch   AL    B6
+  "];
+  B6 [label =
+  "B6:
+    move     R42   R43
+    sub      R43   1     R43
+    move     R43   ecx
+    static call [static jint Fact.factIf(jint)]  result eax bci:9
+    move     eax   R44
+    move     R44   R45
+    mul      R45   R42   R45
+    move     R45   R46
+    branch   AL    B8
+  "];
+  B7 [label=
+  "B7:
+    move     1     R46
+    branch   AL    B8
+  "];
+  B8 [label =
+  "B8:
+    move     R46   R47
+    mul      R47   R41
+    move     R47   R48
+    branch   AL    B3
+  "];
+  B2 [label =
+  "B2:
+    move     1     B48
+    branch   AL    B3
+  "];
+  B3 [label =
+  "B3:
+    move     R48   eax
+    return   eax
+  "];
+  }
+
+
+.. graph:: foo
+
+   "bar" -- "baz";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sample code factFor
+===============================================================================
+
+入力ソースコードfactFor ::
+
+  public static int factFor(int n) {
+    int p = 1;
+    for (int i = 1; i <= n; i++) {
+      p = p * i;
+    }
+    return p;
+  }
+
+factFor Bytecode ::
+
+  public static int factFor(int);
+  Code:
+  0:   iconst_1
+  1:   istore_1
+  2:   iconst_1
+  3:   istore_2
+  4:   iload_2
+  5:   iload_0
+  6:   if_icmpgt       19
+  9:   iload_1
+  10:  iload_2
+  11:  imul
+  12:  istore_1
+  13:  iinc    2, 1
+  16:  goto    4
+  19:  iload_1
+  20:  ireturn
+
+
+c1_Compiler.cpp コンパイラの全体制御 ::
+
+  // 入力はciMethond* method <-- bytecode method単位
+  void Compiler::compile_method(ciEnv* env, ciMethod* method, int entry_bci)
+    compile_method()
+
+  Compilation::compile_method()
+    method()->break_at_execute()
+    compile_java_method()
+    install_code(frame_size)
+
+  Compilation::compile_java_method()
+    build_hir()
+      _hir = new IR()
+      _hir->optimize()
+      _hir->split_critical_edges()
+      _hir->compute_code()
+      GlobalValueNumbering gvn(_hir)
+      _hir->compute_use_counts()
+
+    FrameMap()
+
+    emit_lir()
+      LIRGenerator gen()
+      hir()->iterate_linear_scan_order()
+      LinearScan allocator = new LinearScan()
+
+    emit_code_body()
+      setup_code_buffer()
+      _masm = new C1_MacroAssembler()
+      LIR_Asssembler lir_asm()
+      lir_asm.emit_code()
+      emit_code_epilog()
+        generate code for deopt handler
+
+ちょっと詳細に入り込む
+===============================================================================
+
+IR() ::
+
+  IR()->IRScope()->XHandlers()
+    IRScope()
+      _requires_phi_function
+    IR()->IRScope()->IRScope()
+      _start = GraphBuilder gm() constructor
+
+  GraphBuilder()
+    GraphBuilder::iterate_all_blocks()
+      GraphBuilder::iterate_bytecodes_for_block(int bci)
+
+  stream = ciBytecodeStream s(method());
+  while(code = stream()->next()) {
+    case Bytecodes::_iconst_0:
+    case ...
+    case ...
+    case ...
+    case ...
+  }
+
+point ::
+  BraphBuilder::invoke(code);
+  if (UseCHA && DeoptC1) {
+  }
+
+
+
+
+
+B0 (SV) [0, -1] sux: B1 B2
+empty stack
+inlining depth 0
+__bci__use__tid____instr____________________________________
+locals size: 6 stack size: 0
+  0    0    l6     0L
+  5    0    i7     l4 lcmp l5
+  6    0    i8     0
+. 5    0     10    if l4 <= l5 then B2 else B1
+
+IRScopeが存在するのは、Inlineningを処理する間接的なレイヤーなのか？
+
+IR::optimize()
+  Optimize opt(this)
+    cpmpilation()->profile_branches()
+    opt.eliminate_conditional_expressions()
+    opt.eliminate_blocks()
+    opt.eliminate_null_checks()
+
+
+
+c1_Instruction.hpp
+
+class Instruction
+class   Phi
+
+
+
+プロファイラの話
+===============================================================================
+
+  product(bool, C1ProfileCalls, true,                                       \
+          "Profile calls when generating code for updating MDOs")           \
+                                                                            \
+// dead
+  product(bool, C1ProfileVirtualCalls, true,                                \
+          "Profile virtual calls when generating code for updating MDOs")   \
+                                                                            \
+  product(bool, C1ProfileInlinedCalls, true,                                \
+          "Profile inlined calls when generating code for updating MDOs")   \
+                                                                            \
+  product(bool, C1ProfileBranches, true,                                    \
+          "Profile branches when generating code for updating MDOs")        \
+                                                                            \
+  product(bool, C1ProfileCheckcasts, true,                                  \
+          "Profile checkcasts when generating code for updating MDOs")      \
+
+
+invokeへの変換で、profileは何をやっているのか
+プロファイルシステム、何をどうやってプロファイルをとるか
+profile命令がたくさん埋まっているようにみえるが、
+  プロファイルの挿入
+  プロファイル情報の取得
+
+  どちらなのか
+
+
+PrintIR1  c1_IR.cpp
+
+
+### invoke C1コンパイラでのinvokeの扱い
+  invoke
+    try_inline(ciMethod* inline_target
+
+  cha_monoporphic_target
+
+  CHA Class Hieralcy analysis
+
+### optimize
+
+
+
+
+
+
+EscapeAnalysis
+  Clientじゃ動かん
+  Serverだとbreakを確認できた。
+  Sharkだとifdef切ってるけど、多分動かないんだろうと推測
+
+
+### UseCHA && invoke
+
+GraphBuilder::call_register_finalizer()
+
+ciInstanceKlass* ik = compilation()->method()->holder();
+//finalだったら、一意に決まります
+if (ik->is_final()) {
+  exact_type = ik;
+//クラス階層解析を使用するかつサブクラスを持ってない
+} else if (UseCHA && !(ik->has_subklass() || ik->is_interface())) {
+  // test class is leaf class
+  compilation()->dependency_recorder()->assert_leaf_type(ik);
+  exact_type = ik;
+} else {
+  declared_type = ik;
+}
+
+
+GraphBuilder::invoke(Bytecodes::Code)
+
+ciMethod* cha_monomorphic_target
+ciMethod* exact_target
+
+if (!target->is_static()) {
+  type_is_exact
+  exact_target = target->resolve_invoke(calling_klass, receiver_klass);
+    code = invokespecial
+
+  invokevirtual || invokeinterfaceの場合
+    cha_monomorphic_target = target->find_monomorphic_target(calling_klass, callee_holder, actual_recv);
+
+  invokeinterface && singleton?
+    CheckCast* c = new CheckCast(klass, receiver, copy_state_for_exception())
+    set_incompatible_class_change_check()
+
+cha_monomorphic_targetがabstractだった場合、
+  NULL
+
+cha_monomorphic_targetが見つかった場合
+  dependency_recorder()->assert_unique_concrete_method(actual_recv, cha_monomorphic_target)
+  code = invokespecial
+
+もし上記処理で一意に分かったら
+  try_inline
+
+
+is_profiling()
+  target_klass = cha_monomorphic_target->holder() || exact_garget->holder()
+  profile_call(recv, target_klass)
+
+
+dependency
+===============================================================================
+
+sample ::
+
+  dependency_recoder()
+  code/dependencies.chpp
+  Dependencies
+    assert append
+    check_dependency()  <-- callee ciEnv, nmehotd.cpp
+  DepChange
+  
+  ci/ciEnv.cpp
+    check_for_system_dictionary_modification(ciMethod* target);
+  
+  runtime/deoptimization.hpp
+
+
+
+// check if we could do inlining
+if (!PatchALot && Inline && klass->is_loaded() &&
+    (klass->is_initialized() || klass->is_interface() && target->holder()->is_initialized())
+    && target->will_link(klass, callee_holder, code)) {
+
+  klass is not interface()
+
+
+-XX:+TraceDependencies
+-XX:+VerifyDependencies
+
+    public class iftest {
+      static final long LEN=100000000;
+      public static void main(String args[]) {
+        getter f = new B();
+        long sum=0;
+        for( long i=0; i<LEN; i++ )
+          sum += f.get();
+
+        //    getter f2 = new C();//  <-- not inlining
+
+        System.out.println(sum);
+      }
+    }
+
+log ::
+
+  Failed dependency of type unique_concrete_method
+    context = *getter
+    method  = {method} 'get' '()I' in 'B'
+    witness = *getter
+    code:    9434   1%     nmethod iftest::main @ 13 (58 bytes)
+    Marked for deoptimization
+    context = getter
+    dependee = C
+    context supers = 1, interfaces = 1
+    Compiled (c1)    9434   1%     nmethod iftest::main @ 13 (58 bytes)
+    total in heap  [0xb5891388,0xb5891acc] = 1860
+    relocation     [0xb5891458,0xb5891500] = 168
+    main code      [0xb5891500,0xb58917c0] = 704
+    stub code      [0xb58917c0,0xb589180c] = 76
+    oops           [0xb589180c,0xb5891818] = 12
+    scopes data    [0xb5891818,0xb58918ec] = 212
+    scopes pcs     [0xb58918ec,0xb5891aac] = 448
+    dependencies   [0xb5891aac,0xb5891ab0] = 4
+    nul chk table  [0xb5891ab0,0xb5891acc] = 28
+    Dependencies:
+    Dependency of type unique_concrete_method
+    context = *getter
+    method  = {method} 'get' '()I' in 'B'
+    [nmethod<=klass]getter
+    checking (true)    9434   1%     nmethod iftest::main @ 13 (58 bytes)
+
+
+gdb stack trace ::
+
+  Breakpoint 4, Dependencies::DepStream::check_dependency_impl (this=0xfd05c8, changes=0xfd06f8)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/code/dependencies.cpp:1449
+  1449      if (TraceDependencies) {
+  #1  0x00530b7e in Dependencies::DepStream::spot_check_dependency_at (this=0xfd05c8, changes=...)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/code/dependencies.cpp:1464
+  1464    return check_dependency_impl(&changes);
+  #0  Dependencies::DepStream::check_dependency_impl (this=0xfd05c8, changes=0xfd06f8)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/code/dependencies.cpp:1449
+  1449      if (TraceDependencies) {
+  #1  0x00530b7e in Dependencies::DepStream::spot_check_dependency_at (this=0xfd05c8, changes=...)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/code/dependencies.cpp:1464
+  1464    return check_dependency_impl(&changes);
+  #2  0x007573ae in nmethod::check_dependency_on (this=0xb60d4388, changes=...)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/code/nmethod.cpp:2063
+  2063      if (deps.spot_check_dependency_at(changes) != NULL) {
+  #3  0x005b6030 in instanceKlass::mark_dependent_nmethods (this=0xb212bde0, changes=...)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/oops/instanceKlass.cpp:1406
+  1406      if (nm->is_alive() && !nm->is_marked_for_deoptimization() && nm->check_dependency_on(changes)) {
+  #4  0x004b0f83 in CodeCache::mark_for_deoptimization (changes=...)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/code/codeCache.cpp:641
+  641       number_of_marked_CodeBlobs += instanceKlass::cast(d)->mark_dependent_nmethods(changes);
+  #5  0x00866302 in Universe::flush_dependents_on (dependee=...)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/memory/universe.cpp:1182
+  1182    if (CodeCache::mark_for_deoptimization(changes) > 0) {
+  #6  0x00825729 in SystemDictionary::add_to_hierarchy (k=..., __the_thread__=0x806cc00)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/classfile/systemDictionary.cpp:1727
+  1727    Universe::flush_dependents_on(k);
+  #7  0x00824e09 in SystemDictionary::define_instance_class (k=..., __the_thread__=0x806cc00)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/classfile/systemDictionary.cpp:1506
+  1506      add_to_hierarchy(k, CHECK); // No exception, but can block
+  #8  0x00823df1 in SystemDictionary::resolve_from_stream (class_name=..., class_loader=..., protection_domain=..., st=0xfd0980, 
+      verify=true, __the_thread__=0x806cc00) at /home/elise/language/openjdk6/hotspot/src/share/vm/classfile/systemDictionary.cpp:1138
+  1138        define_instance_class(k, THREAD);
+  #9  0x0064c2d9 in jvm_define_class_common (env=0x806cd3c, name=0xfd0eac "C", loader=0xfd0fac, buf=0xa1c16508 "\312\376\272\276", 
+      len=316, pd=0xfd0f98, source=0xfd0aac "file:/home/elise/language/java/sample6/", verify=1 '\001', __the_thread__=0x806cc00)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/prims/jvm.cpp:864
+  864                                                      CHECK_NULL);
+  #10 0x0064c7d6 in JVM_DefineClassWithSource (env=0x806cd3c, name=0xfd0eac "C", loader=0xfd0fac, buf=0xa1c16508 "\312\376\272\276", 
+      len=316, pd=0xfd0f98, source=0xfd0aac "file:/home/elise/language/java/sample6/")
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/prims/jvm.cpp:884
+  884   return jvm_define_class_common(env, name, loader, buf, len, pd, source, true, THREAD);
+  #11 0x00ff7942 in Java_java_lang_ClassLoader_defineClass1 (env=0x806cd3c, loader=0xfd0fac, name=0xfd0fa8, data=0xfd0fa4, offset=0, 
+      length=316, pd=0xfd0f98, source=0xfd0f94) at ../../../src/share/native/java/lang/ClassLoader.c:151
+  151     result = JVM_DefineClassWithSource(env, utfName, loader, body, length, pd, utfSource);
+
+
+
+
+dependence ::
+
+  // Flushes compiled methods dependent on dependee.
+  void Universe::flush_dependents_on(instanceKlassHandle dependee) {
+    assert_lock_strong(Compile_lock);
+  
+    if (CodeCache::number_of_nmethods_with_dependencies() == 0) return;
+  
+    // CodeCache can only be updated by a thread_in_VM and they will all be
+    // stopped dring the safepoint so CodeCache will be safe to update without
+    // holding the CodeCache_lock.
+  
+    DepChange changes(dependee);
+  
+    // Compute the dependent nmethods
+    if (CodeCache::mark_for_deoptimization(changes) > 0) {  //<----- koko
+      // At least one nmethod has been marked for deoptimization
+      VM_Deoptimize op;
+      VMThread::execute(&op);
+    }
+  }
+
+
+Deoptimization
+===============================================================================
+  dependenciesのルールから、VM_deoptimizeがキックされ、
+  dependenciesに引っかかった要素をdeoptimizeするのだと思う
+
+EscapeAnalysis
+===============================================================================
+  c1コンパイラからは呼ばれません！！！
+
+Inlining
+===============================================================================
+  try_inline(inline_target, );
+    try_inline_full() <-- 200stepの関数なので、あまり見たくない
+      最終的には、iterate_bytecode_ みたいなのを呼び出す
+
+Profiling
+===============================================================================
+  is_profiling()
+  プロファイル情報を取得しているだけ？
+
+  is_profilingは無効っぽい
+
+HIR Optimization
+===============================================================================
+
+c1_Compilation.cpp::build_hir()
+optimizeの入り口 ::
+
+  if (UseC1Optimizations) {
+    NEEDS_CLEANUP
+    // optimization
+    PhaseTraceTime timeit(_t_optimizeIR);
+
+    _hir->optimize();
+  }
+
+c1_IR.cpp::optimize() ::
+
+  if (DoCEE) {
+    opt.eliminate_conditional_expressions();
+  }
+  if (EliminateBlocks) {
+    opt.eliminate_blocks();
+  }
+  if (EliminateNullChecks) {
+    opt.eliminate_null_checks();
+  }
+
+
+CE_Eliminator::block_do()が本体かな::
+
+  ブロックの終端のifを取得
+  ifはint型かobject型か判定
+
+  true  block
+  false block
+  true_instruction
+  false_instruction
+
+  a = (b > c) ? b : c;
+
+  BB:
+    if ... then BBn false BBm
+  BBn:
+    const n
+    goto BBs
+  BBm:
+    const m
+    goto BBs
+  BBs:
+    phi [][]
+
+
+
+
+
+GlobalValueNumbering
+===============================================================================
+c1_ValueMap.hpp::GlobalValueNumbering(IR* ir) ::
+
+  ShortLoopOptimizer short_loop_optimizer(this);
+
+  for (int i = 1; i < num_blocks; i++) {
+    BlockBegin* block = blocks->at(i);
+
+    ...
+
+    if (num_preds == 1) {
+      // nothing to do here
+
+    } else if (block->is_set(BlockBegin::linear_scan_loop_header_flag)) {
+      // block has incoming backward branches -> try to optimize short loops
+      if (!short_loop_optimizer.process(block)) {
+        // loop is too complicated, so kill all memory loads because there might be
+        // stores to them in the loop
+        current_map()->kill_memory();
+      }
+
+    } else {
+
+
+todo GVNのkillうんたらの詳細
+  kill_memory()
+  kill_exception()
+
+
+CEE sample ::
+
+  B62:
+    i179 = i103 - i76
+    i180 = i178 - i151
+    v186 = if i179 > i180 then B73 else B72
+  B73:
+    v188 = goto B74
+  B72:
+    v187 = goto B74
+  B74:
+    i189 = [i179,i180]
+    v190 = goto B70
+  B70:
+    i191 = i151 + i189
+
+  B62:
+    i179 = i103 - i76
+    i180 = i178 - i151
+    i444 = i179 > 180 ? i180 : i179
+    i191 = i444 + i151
+
+
+
+
+
+.. blockdiag::
+
+  diagram admin {
+    test1 -> test2 -> test3 ;
+  }
+
