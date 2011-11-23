@@ -1,85 +1,147 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset='utf-8'>
 
-  <title>nothingcosmos/OpenJDKOverview @ GitHub</title>
 
-  <style type="text/css">
-    body {
-      margin-top: 1.0em;
-      background-color: #23d5a0;
-      font-family: Helvetica, Arial, FreeSans, san-serif;
-      color: #000000;
-    }
-    #container {
-      margin: 0 auto;
-      width: 700px;
-    }
-    h1 { font-size: 3.8em; color: #dc2a5f; margin-bottom: 3px; }
-    h1 .small { font-size: 0.4em; }
-    h1 a { text-decoration: none }
-    h2 { font-size: 1.5em; color: #dc2a5f; }
-    h3 { text-align: center; color: #dc2a5f; }
-    a { color: #dc2a5f; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
-    .download { float: right; }
-    pre { background: #000; color: #fff; padding: 15px;}
-    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
-    .footer { text-align:center; padding-top:30px; font-style: italic; }
-  </style>
-</head>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
-<body>
-  <a href="https://github.com/nothingcosmos/OpenJDKOverview"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
 
-  <div id="container">
-
-    <div class="download">
-      <a href="https://github.com/nothingcosmos/OpenJDKOverview/zipball/master">
-        <img border="0" width="90" src="https://github.com/images/modules/download/zip.png"></a>
-      <a href="https://github.com/nothingcosmos/OpenJDKOverview/tarball/master">
-        <img border="0" width="90" src="https://github.com/images/modules/download/tar.png"></a>
-    </div>
-
-    <h1><a href="https://github.com/nothingcosmos/OpenJDKOverview">OpenJDKOverview</a>
-      <span class="small">by <a href="https://github.com/nothingcosmos">nothingcosmos</a></span></h1>
-
-    <div class="description">
-      compiler jit jvm c1 c2 hotspot openjdk
-    </div>
-
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-
+    <title>Welcome to OpenJDK Internals’s documentation! &mdash; OpenJDK Internals 1.0 documentation</title>
     
-
+    <link rel="stylesheet" href="static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/print.css" type="text/css" />
     
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="#" />
+    <link rel="next" title="OpenJDK HotSpot Client Compiler Overview" href="src/overview.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="#">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>Welcome to OpenJDK Internals’s documentation!</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        <a class="uplink" href="#">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="src/overview.html"><em>OpenJDK HotSpot Client Compiler Overview</em></a>&#160;&#160;»
+        </p>
 
-    
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="welcome-to-openjdk-internals-s-documentation">
+<h1>Welcome to OpenJDK Internals&#8217;s documentation!<a class="headerlink" href="#welcome-to-openjdk-internals-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="src/overview.html"><em>OpenJDK HotSpot Client Compiler Overview</em></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/overview.html#id1">タイトル</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/overview.html#id2">自己紹介</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/overview.html#openjdk">OpenJDK キーワード</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/overview.html#hotspot1">HotSpotの見どころ1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/overview.html#hotspot2">HotSpotの見どころ2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/overview.html#c1-compiler">本日紹介するC1 Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/overview.html#c1">C1コンパイラの構成</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/precompile.html">コンパイル前の動作</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/precompile.html#jit">JITコンパイラ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/precompile.html#id2">JITコンパイラが呼ばれる仕組み</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/precompile.html#id3">JITコンパイルの入出力</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/precompile.html#id4">JITコンパイルする条件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/precompile.html#id5">JITコンパイルする際のしきい値</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/c1_internals.html">C1コンパイラの内部構造</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_internals.html#id1">大まかなコンパイルの概要</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_internals.html#id2">コンパイラ全体の制御</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_internals.html#bytecodehir">BytecodeからHIRへの変換</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_internals.html#if-icmpxx">if_icmpXXの変換</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_internals.html#invoke">invokeの変換</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_internals.html#dependency">dependency</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_internals.html#id3">プロファイラ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_internals.html#hir-lir">HIR から LIR への変換</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/c1_optimization.html">C1コンパイラのHIR最適化</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_optimization.html#eliminate-conditional-expressions">eliminate_conditional_expressions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_optimization.html#globalvaluenumbering">GlobalValueNumbering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_optimization.html#escapeanalysis">EscapeAnalysis</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/c1_optimization.html#c1lir">C1コンパイラのLIR最適化</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_optimization.html#edgemoveoptimizer">EdgeMoveOptimizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c1_optimization.html#controlflowoptimizer">ControlFlowOptimizer</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/devirtualize.html">Devirtualization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/devirtualize.html#id1">ポイントとなるメソッド</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/devirtualize.html#c2-opto-devirtualization">C2(opto)でのDevirtualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/devirtualize.html#id2">疑問点</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/devirtualize.html#id3">おまけ</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/escape.html">BytecodeEscapeAnalysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/escape.html#ci-bcescapeanalyzer">ci/bcEscapeAnalyzer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/escape.html#escapeanalysis">EscapeAnalysisの解析結果</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/escape.html#id1">EscapeAnalysisの解析結果の用途</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/factIf.html">sample code factIf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="src/factFor.html">sample code factFor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="src/reference.html">参考文献</a></li>
+<li class="toctree-l1"><a class="reference internal" href="src/todo.html">todo</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/todo.html#c2-devirtualization">C2 Devirtualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/todo.html#escapeanalysis">EscapeAnalysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/todo.html#superword">superword</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/todo.html#shark">Shark</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
 
-    
 
-    
-      <h2>Contact</h2>
-      <p>nothingcosmos (nothingcosmos@hotmail.com)<br/>      </p>
-    
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        <a class="uplink" href="#">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="src/overview.html"><em>OpenJDK HotSpot Client Compiler Overview</em></a>&#160;&#160;»
+        </p>
 
-    <h2>Download</h2>
-    <p>
-      You can download this project in either
-      <a href="https://github.com/nothingcosmos/OpenJDKOverview/zipball/master">zip</a> or
-      <a href="https://github.com/nothingcosmos/OpenJDKOverview/tarball/master">tar formats.
-    </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
-      <pre>$ git clone git://github.com/nothingcosmos/OpenJDKOverview</pre>
-    </p>
+      </div>
 
     <div class="footer">
-      get the source code on GitHub : <a href="https://github.com/nothingcosmos/OpenJDKOverview">nothingcosmos/OpenJDKOverview</a>
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
     </div>
-
-  </div>
-
-</body>
+  </body>
 </html>

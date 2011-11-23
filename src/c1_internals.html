@@ -1,0 +1,635 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>C1コンパイラの内部構造 &mdash; OpenJDK Internals 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/print.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <script type="text/javascript" src="../static/underscore.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
+    <link rel="next" title="C1コンパイラのHIR最適化" href="c1_optimization.html" />
+    <link rel="prev" title="コンパイル前の動作" href="precompile.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="../index.html">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>C1コンパイラの内部構造</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        «&#160;&#160;<a href="precompile.html">コンパイル前の動作</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="c1_optimization.html">C1コンパイラのHIR最適化</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="c1">
+<h1>C1コンパイラの内部構造<a class="headerlink" href="#c1" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2>大まかなコンパイルの概要<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<img alt="../images/Design_of_the_Java_HotSpot_Client_Compiler_for_Java6.png" src="../images/Design_of_the_Java_HotSpot_Client_Compiler_for_Java6.png" />
+<p>method単位で、BytecodeからHIRへの変換</p>
+<p>HIRからLIRへの変換</p>
+<p>LIRからMachine codeへの変換</p>
+</div>
+<div class="section" id="id2">
+<h2>コンパイラ全体の制御<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>c1_Compiler.cpp コンパイルの入り口</p>
+<div class="highlight-python"><pre>// 入力はciMethond* method &lt;-- bytecode method単位
+void Compiler::compile_method(ciEnv* env, ciMethod* method, int entry_bci)
+  compile_method()</pre>
+</div>
+<p>c1_Compilation.cpp コンパイラの全体制御</p>
+<div class="highlight-python"><pre>Compilation::compile_method()
+  method()-&gt;break_at_execute()
+  compile_java_method()
+  install_code(frame_size)
+
+Compilation::compile_java_method()
+  build_hir()
+    _hir = new IR()
+    _hir-&gt;optimize()
+    _hir-&gt;split_critical_edges()
+    _hir-&gt;compute_code()
+    GlobalValueNumbering gvn(_hir)
+    _hir-&gt;compute_use_counts()
+
+  FrameMap()
+
+  emit_lir()
+    LIRGenerator gen()
+    hir()-&gt;iterate_linear_scan_order()
+    LinearScan allocator = new LinearScan()
+    allocator-&gt;do_linear_scan()
+      compute_local_live_sets()
+      compute_global_live_sets()
+      build_intervals()
+      allocate_registers()
+      resolve_data_flow()
+      propagate_spill_slots()
+      eliminate_spill_moves()
+      assign_reg_num()
+      allocate_fpu_stack()
+
+      EdgeMoveOptimizer::optimize(ir()-&gt;code())
+      ControlFlowOptimizer::optimize(ir()-&gt;code())
+
+  emit_code_body()
+    setup_code_buffer()
+    _masm = new C1_MacroAssembler()
+    LIR_Asssembler lir_asm()
+    lir_asm.emit_code()
+    emit_code_epilog()
+      generate code for deopt handler</pre>
+</div>
+</div>
+<div class="section" id="bytecodehir">
+<h2>BytecodeからHIRへの変換<a class="headerlink" href="#bytecodehir" title="Permalink to this headline">¶</a></h2>
+<p>BytecodeからHIRへの変換は、大体1Bytecodeにつき、1HIRに変換する</p>
+<p>IR()</p>
+<div class="highlight-python"><pre>IR()-&gt;IRScope()-&gt;XHandlers()
+  IRScope()
+    _requires_phi_function
+  IR()-&gt;IRScope()-&gt;IRScope()
+    _start = GraphBuilder gm() constructor
+
+GraphBuilder()
+  GraphBuilder::iterate_all_blocks()
+    GraphBuilder::iterate_bytecodes_for_block(int bci)</pre>
+</div>
+<p>Bytecodeの各命令ごとに処理をわけているところ</p>
+<p>GraphBuilder::iterate_bytecodes_for_block(int bci):</p>
+<div class="highlight-python"><pre>_skip_block = false;
+assert(state() != NULL, "ValueStack missing!");
+ciBytecodeStream s(method());
+s.reset_to_bci(bci);
+int prev_bci = bci;
+scope_data()-&gt;set_stream(&amp;s);
+// iterate
+Bytecodes::Code code = Bytecodes::_illegal;
+bool push_exception = false;
+
+if (block()-&gt;is_set(BlockBegin::exception_entry_flag) &amp;&amp; block()-&gt;next() == NULL) {
+  // first thing in the exception entry block should be the exception object.
+  push_exception = true;
+}
+
+while (!bailed_out() &amp;&amp; last()-&gt;as_BlockEnd() == NULL &amp;&amp;
+       (code = stream()-&gt;next()) != ciBytecodeStream::EOBC() &amp;&amp;
+       (block_at(s.cur_bci()) == NULL || block_at(s.cur_bci()) == block())) {
+  assert(state()-&gt;kind() == ValueStack::Parsing, "invalid state kind");
+
+  // Check for active jsr during OSR compilation
+  if (compilation()-&gt;is_osr_compile()
+      &amp;&amp; scope()-&gt;is_top_scope()
+      &amp;&amp; parsing_jsr()
+      &amp;&amp; s.cur_bci() == compilation()-&gt;osr_bci()) {
+    bailout("OSR not supported while a jsr is active");
+  }
+
+  if (push_exception) {
+    apush(append(new ExceptionObject()));
+    push_exception = false;
+  }
+
+  // handle bytecode
+  switch (code) {
+  case Bytecodes::_nop            : /* nothing to do */ break;
+  case Bytecodes::_aconst_null    : apush(append(new Constant(objectNull            ))); break;
+  case Bytecodes::_iconst_m1      : ipush(append(new Constant(new IntConstant   (-1)))); break;
+  case Bytecodes::_iconst_0       : ipush(append(new Constant(intZero               ))); break;
+  case Bytecodes::_iconst_1       : ipush(append(new Constant(intOne                ))); break;
+  case Bytecodes::_iconst_2       : ipush(append(new Constant(new IntConstant   ( 2)))); break;
+  case Bytecodes::_iconst_3       : ipush(append(new Constant(new IntConstant   ( 3)))); break;
+  case Bytecodes::_iconst_4       : ipush(append(new Constant(new IntConstant   ( 4)))); break;
+  case Bytecodes::_iconst_5       : ipush(append(new Constant(new IntConstant   ( 5)))); break;
+  ...
+  case Bytecodes::_invokevirtual  : // fall through
+  case Bytecodes::_invokespecial  : // fall through
+  case Bytecodes::_invokestatic   : // fall through
+  case Bytecodes::_invokedynamic  : // fall through
+  case Bytecodes::_invokeinterface: invoke(code); break;</pre>
+</div>
+<p>invoke命令を変換時にdevirtualize/inline展開する</p>
+<ul class="simple">
+<li>&#64;todo codeを追う</li>
+<li>&#64;todo devirtualizeの仕組み</li>
+<li>&#64;todo is_profile_callの仕組み</li>
+</ul>
+</div>
+<div class="section" id="if-icmpxx">
+<h2>if_icmpXXの変換<a class="headerlink" href="#if-icmpxx" title="Permalink to this headline">¶</a></h2>
+<p>if_icmpXXの変換が分かりやすい</p>
+<p>Bytecodeのiterate</p>
+<div class="highlight-python"><pre>case Bytecodes::_if_icmpeq      : if_same(intType   , If::eql); break;
+case Bytecodes::_if_icmpne      : if_same(intType   , If::neq); break;
+case Bytecodes::_if_icmplt      : if_same(intType   , If::lss); break;
+case Bytecodes::_if_icmpge      : if_same(intType   , If::geq); break;
+case Bytecodes::_if_icmpgt      : if_same(intType   , If::gtr); break;
+case Bytecodes::_if_icmple      : if_same(intType   , If::leq); break;
+case Bytecodes::_if_acmpeq      : if_same(objectType, If::eql); break;
+case Bytecodes::_if_acmpne      : if_same(objectType, If::neq); break;</pre>
+</div>
+<p>ifの変換部</p>
+<div class="highlight-python"><pre>void GraphBuilder::if_same(ValueType* type, If::Condition cond) {
+  ValueStack* state_before = copy_state_before();
+  Value y = pop(type);
+  Value x = pop(type);
+  if_node(x, cond, y, state_before);
+}
+
+void GraphBuilder::if_node(Value x, If::Condition cond, Value y, ValueStack* state_before) {
+  BlockBegin* tsux = block_at(stream()-&gt;get_dest());
+  BlockBegin* fsux = block_at(stream()-&gt;next_bci());
+  bool is_bb = tsux-&gt;bci() &lt; stream()-&gt;cur_bci() || fsux-&gt;bci() &lt; stream()-&gt;cur_bci();
+  Instruction *i = append(new If(x, cond, false, y, tsux, fsux, is_bb ? state_before : NULL, is_bb));
+
+  if (is_profiling()) {
+    If* if_node = i-&gt;as_If();
+    if (if_node != NULL) {
+      // Note that we'd collect profile data in this method if we wanted it.
+      compilation()-&gt;set_would_profile(true);
+      // At level 2 we need the proper bci to count backedges
+      if_node-&gt;set_profiled_bci(bci());
+      if (profile_branches()) {
+        // Successors can be rotated by the canonicalizer, check for this case.
+        if_node-&gt;set_profiled_method(method());
+        if_node-&gt;set_should_profile(true);
+        if (if_node-&gt;tsux() == fsux) {
+          if_node-&gt;set_swapped(true);
+        }
+      }
+      return;
+    }
+
+    // Check if this If was reduced to Goto.
+    Goto *goto_node = i-&gt;as_Goto();
+    if (goto_node != NULL) {
+      compilation()-&gt;set_would_profile(true);
+      if (profile_branches()) {
+        goto_node-&gt;set_profiled_method(method());
+        goto_node-&gt;set_profiled_bci(bci());
+        goto_node-&gt;set_should_profile(true);
+        // Find out which successor is used.
+        if (goto_node-&gt;default_sux() == tsux) {
+          goto_node-&gt;set_direction(Goto::taken);
+        } else if (goto_node-&gt;default_sux() == fsux) {
+          goto_node-&gt;set_direction(Goto::not_taken);
+        } else {
+          ShouldNotReachHere();
+        }
+      }
+      return;
+    }
+  }
+}</pre>
+</div>
+</div>
+<div class="section" id="invoke">
+<h2>invokeの変換<a class="headerlink" href="#invoke" title="Permalink to this headline">¶</a></h2>
+<p>BytecodeのinvokeXXXは、invoke()メソッドで処理する。</p>
+<p>invokeを処理する際に、呼び出し対象が一意に定まるか判定し、</p>
+<p>もし定まる場合は、inline展開を試行する。</p>
+<p>また、invokevirtualやinvokeinterfaceのdevirtual化(invokespecialとみなす)を行い、
+積極的にinline展開を試行する</p>
+<p>invoke</p>
+<div class="highlight-python"><pre>switch (code) {
+case Bytecodes::_nop            : /* nothing to do */ break;
+...
+case Bytecodes::_invokevirtual  : // fall through
+case Bytecodes::_invokespecial  : // fall through
+case Bytecodes::_invokestatic   : // fall through
+case Bytecodes::_invokedynamic  : // fall through
+case Bytecodes::_invokeinterface: invoke(code); break;</pre>
+</div>
+<p>GraphBuilder::invoke(Bytecodes::Code)</p>
+<div class="highlight-python"><pre>ciMethod* cha_monomorphic_target
+ciMethod* exact_target
+
+if (!target-&gt;is_static()) {
+  type_is_exact
+  exact_target = target-&gt;resolve_invoke(calling_klass, receiver_klass);
+    code = invokespecial
+
+  invokevirtual || invokeinterfaceの場合
+    cha_monomorphic_target = target-&gt;find_monomorphic_target(calling_klass, callee_holder, actual_recv);
+
+  invokeinterface &amp;&amp; singleton?
+    CheckCast* c = new CheckCast(klass, receiver, copy_state_for_exception())
+    set_incompatible_class_change_check()
+
+cha_monomorphic_targetがabstractだった場合、
+  NULL
+
+cha_monomorphic_targetが見つかった場合
+  dependency_recorder()-&gt;assert_unique_concrete_method(actual_recv, cha_monomorphic_target)
+  code = invokespecial
+
+もし上記処理で一意に分かったら
+try_inline(inline_target, );
+  try_inline_full() &lt;-- 200stepの関数なので、あまり見たくない
+    最終的には、iterate_bytecode_ みたいなのを呼び出す
+
+
+is_profiling()
+  target_klass = cha_monomorphic_target-&gt;holder() || exact_garget-&gt;holder()
+  profile_call(recv, target_klass)</pre>
+</div>
+</div>
+<div class="section" id="dependency">
+<h2>dependency<a class="headerlink" href="#dependency" title="Permalink to this headline">¶</a></h2>
+<p>dependencyは、JVM上での制約をチェックし、違反した場合イベントを起動してくれるイベントハンドラみたいなもの</p>
+<p>よく脱仮想化する際に使用し、もし脱仮想化の条件が崩れた場合、脱最適化するようにイベントを登録する</p>
+<p>脱仮想化の条件が崩れる例として、newで新しいクラスを作成した時や、classloader、redefine</p>
+<p>void GraphBuilder::invoke(Bytecodes::Code code)</p>
+<div class="highlight-python"><pre>if (cha_monomorphic_target != NULL) {
+  if (!(target-&gt;is_final_method())) {
+    // If we inlined because CHA revealed only a single target method,
+    // then we are dependent on that target method not getting overridden
+    // by dynamic class loading.  Be sure to test the "static" receiver
+    // dest_method here, as opposed to the actual receiver, which may
+    // falsely lead us to believe that the receiver is final or private.
+    dependency_recorder()-&gt;assert_unique_concrete_method(actual_recv, cha_monomorphic_target);
+  }
+  code = Bytecodes::_invokespecial;
+}</pre>
+</div>
+<p>GraphBuilder::call_register_finalizer()</p>
+<div class="highlight-python"><pre>ciInstanceKlass* ik = compilation()-&gt;method()-&gt;holder();
+//finalだったら、一意
+if (ik-&gt;is_final()) {
+  exact_type = ik;
+//クラス階層解析を使用するかつサブクラスを持ってない
+} else if (UseCHA &amp;&amp; !(ik-&gt;has_subklass() || ik-&gt;is_interface())) {
+  // test class is leaf class
+  compilation()-&gt;dependency_recorder()-&gt;assert_leaf_type(ik);
+  exact_type = ik;
+} else {
+  declared_type = ik;
+}</pre>
+</div>
+<p>Dependencyを試す場合のオプション</p>
+<blockquote>
+<div><p>-XX:+TraceDependencies</p>
+<p>-XX:+VerifyDependencies</p>
+</div></blockquote>
+<p>dependencyの制約にひっかかり、deoptimizeするサンプルプログラム</p>
+<p>deoptimize sample</p>
+<div class="highlight-python"><pre>interface getter {
+  public int num();
+  public int get();
+}
+
+class Bgetter implements getter {
+  public int num() {
+    return 1;
+  }
+  public int get() {
+    int sum = 0;
+    for (int i=0; i&lt;100; i++) {
+      sum += num();
+    }
+    return sum;
+  }
+}
+class Cgetter implements getter {
+  public int num() {
+    return 2;
+  }
+  public int get() {
+    int sum = 0;
+    for (int i=0; i&lt;100; i++) {
+      sum += num();
+    }
+    return sum;
+  }
+}
+
+public class iftest {
+  static final long LEN=100000000;
+  public static void main(String args[]) {
+    getter f = new B();
+    long sum=0;
+    for( long i=0; i&lt;LEN; i++ ) {
+      sum += f.get();
+    }
+
+    //    getter f2 = new C(); //devirtualize
+
+    System.out.println(sum);
+  }
+}</pre>
+</div>
+<p>getter f2のコメントを外すと、new C()された際にdependencyが反応し、deoptimizeが走る</p>
+<p>log</p>
+<div class="highlight-python"><pre>Failed dependency of type unique_concrete_method
+  context = *getter
+  method  = {method} 'get' '()I' in 'B'
+  witness = *getter
+  code:    9434   1%     nmethod iftest::main @ 13 (58 bytes)
+  Marked for deoptimization
+  context = getter
+  dependee = C
+  context supers = 1, interfaces = 1
+  Compiled (c1)    9434   1%     nmethod iftest::main @ 13 (58 bytes)
+  total in heap  [0xb5891388,0xb5891acc] = 1860
+  relocation     [0xb5891458,0xb5891500] = 168
+  main code      [0xb5891500,0xb58917c0] = 704
+  stub code      [0xb58917c0,0xb589180c] = 76
+  oops           [0xb589180c,0xb5891818] = 12
+  scopes data    [0xb5891818,0xb58918ec] = 212
+  scopes pcs     [0xb58918ec,0xb5891aac] = 448
+  dependencies   [0xb5891aac,0xb5891ab0] = 4
+  nul chk table  [0xb5891ab0,0xb5891acc] = 28
+  Dependencies:
+  Dependency of type unique_concrete_method
+  context = *getter
+  method  = {method} 'get' '()I' in 'B'
+  [nmethod&lt;=klass]getter
+  checking (true)    9434   1%     nmethod iftest::main @ 13 (58 bytes)</pre>
+</div>
+<p>depdnecyのcheck処理が呼ばれた際のstack trace</p>
+<div class="highlight-python"><pre>Breakpoint 4, Dependencies::DepStream::check_dependency_impl (this=0xfd05c8, changes=0xfd06f8)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/code/dependencies.cpp:1449
+1449      if (TraceDependencies) {
+#1  0x00530b7e in Dependencies::DepStream::spot_check_dependency_at (this=0xfd05c8, changes=...)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/code/dependencies.cpp:1464
+1464    return check_dependency_impl(&amp;changes);
+#0  Dependencies::DepStream::check_dependency_impl (this=0xfd05c8, changes=0xfd06f8)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/code/dependencies.cpp:1449
+1449      if (TraceDependencies) {
+#1  0x00530b7e in Dependencies::DepStream::spot_check_dependency_at (this=0xfd05c8, changes=...)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/code/dependencies.cpp:1464
+1464    return check_dependency_impl(&amp;changes);
+#2  0x007573ae in nmethod::check_dependency_on (this=0xb60d4388, changes=...)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/code/nmethod.cpp:2063
+2063      if (deps.spot_check_dependency_at(changes) != NULL) {
+#3  0x005b6030 in instanceKlass::mark_dependent_nmethods (this=0xb212bde0, changes=...)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/oops/instanceKlass.cpp:1406
+1406      if (nm-&gt;is_alive() &amp;&amp; !nm-&gt;is_marked_for_deoptimization() &amp;&amp; nm-&gt;check_dependency_on(changes)) {
+#4  0x004b0f83 in CodeCache::mark_for_deoptimization (changes=...)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/code/codeCache.cpp:641
+641       number_of_marked_CodeBlobs += instanceKlass::cast(d)-&gt;mark_dependent_nmethods(changes);
+#5  0x00866302 in Universe::flush_dependents_on (dependee=...)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/memory/universe.cpp:1182
+1182    if (CodeCache::mark_for_deoptimization(changes) &gt; 0) {
+#6  0x00825729 in SystemDictionary::add_to_hierarchy (k=..., __the_thread__=0x806cc00)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/classfile/systemDictionary.cpp:1727
+1727    Universe::flush_dependents_on(k);
+#7  0x00824e09 in SystemDictionary::define_instance_class (k=..., __the_thread__=0x806cc00)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/classfile/systemDictionary.cpp:1506
+1506      add_to_hierarchy(k, CHECK); // No exception, but can block
+#8  0x00823df1 in SystemDictionary::resolve_from_stream (class_name=..., class_loader=..., protection_domain=..., st=0xfd0980,
+    verify=true, __the_thread__=0x806cc00) at /home/elise/language/openjdk6/hotspot/src/share/vm/classfile/systemDictionary.cpp:1138
+1138        define_instance_class(k, THREAD);
+#9  0x0064c2d9 in jvm_define_class_common (env=0x806cd3c, name=0xfd0eac "C", loader=0xfd0fac, buf=0xa1c16508 "\312\376\272\276",
+    len=316, pd=0xfd0f98, source=0xfd0aac "file:/home/elise/language/java/sample6/", verify=1 '\001', __the_thread__=0x806cc00)
+at /home/elise/language/openjdk6/hotspot/src/share/vm/prims/jvm.cpp:864
+864                                                      CHECK_NULL);
+#10 0x0064c7d6 in JVM_DefineClassWithSource (env=0x806cd3c, name=0xfd0eac "C", loader=0xfd0fac, buf=0xa1c16508 "\312\376\272\276",
+    len=316, pd=0xfd0f98, source=0xfd0aac "file:/home/elise/language/java/sample6/")
+at /home/elise/language/openjdk6/hotspot/src/share/vm/prims/jvm.cpp:884
+884   return jvm_define_class_common(env, name, loader, buf, len, pd, source, true, THREAD);
+#11 0x00ff7942 in Java_java_lang_ClassLoader_defineClass1 (env=0x806cd3c, loader=0xfd0fac, name=0xfd0fa8, data=0xfd0fa4, offset=0,
+    length=316, pd=0xfd0f98, source=0xfd0f94) at ../../../src/share/native/java/lang/ClassLoader.c:151
+151     result = JVM_DefineClassWithSource(env, utfName, loader, body, length, pd, utfSource);</pre>
+</div>
+<p>&#64;todo DepStream::check_dependency_impl() code/dependencies.cpp</p>
+<p>invokenの際は、unique_concreate_method</p>
+<p>CHAで再度チェックしている</p>
+<p>klassOop Dependencies::DepStream::check_dependency_impl(DepChange* changes) {</p>
+<div class="highlight-python"><pre>assert_locked_or_safepoint(Compile_lock);
+
+klassOop witness = NULL;
+switch (type()) {
+case evol_method:
+  witness = check_evol_method(method_argument(0));
+  break;
+case leaf_type:
+  witness = check_leaf_type(context_type());
+  break;
+case abstract_with_unique_concrete_subtype:
+  witness = check_abstract_with_unique_concrete_subtype(context_type(),
+                                                        type_argument(1),
+                                                        changes);
+  break;
+case abstract_with_no_concrete_subtype:
+  witness = check_abstract_with_no_concrete_subtype(context_type(),
+                                                    changes);
+  break;
+case concrete_with_no_concrete_subtype:
+  witness = check_concrete_with_no_concrete_subtype(context_type(),
+                                                    changes);
+  break;
+case unique_concrete_method:
+  witness = check_unique_concrete_method(context_type(),
+                                         method_argument(1),
+                                         changes);
+  break;
+case abstract_with_exclusive_concrete_subtypes_2:
+  witness = check_abstract_with_exclusive_concrete_subtypes(context_type(),
+                                                            type_argument(1),
+                                                            type_argument(2),
+                                                            changes);
+  break;
+case exclusive_concrete_methods_2:
+  witness = check_exclusive_concrete_methods(context_type(),
+                                             method_argument(1),
+                                             method_argument(2),
+                                             changes);
+  break;
+case no_finalizable_subclasses:
+  witness = check_has_no_finalizable_subclasses(context_type(),
+                                                changes);
+  break;
+default:
+  witness = NULL;
+  ShouldNotReachHere();
+  break;
+}</pre>
+</div>
+<p>deoptimizeも、thread並列で行うが、実際にコードを置換する際には全体をmutexで止める</p>
+<p>dependenceからDeoptimizeを呼び出す場所</p>
+<div class="highlight-python"><pre>// Flushes compiled methods dependent on dependee.
+void Universe::flush_dependents_on(instanceKlassHandle dependee) {
+  assert_lock_strong(Compile_lock);
+
+  if (CodeCache::number_of_nmethods_with_dependencies() == 0) return;
+
+  // CodeCache can only be updated by a thread_in_VM and they will all be
+  // stopped dring the safepoint so CodeCache will be safe to update without
+  // holding the CodeCache_lock.
+
+  DepChange changes(dependee);
+
+  // Compute the dependent nmethods
+  if (CodeCache::mark_for_deoptimization(changes) &gt; 0) {  //&lt;----- koko
+    // At least one nmethod has been marked for deoptimization
+    VM_Deoptimize op;
+    VMThread::execute(&amp;op);
+  }
+}</pre>
+</div>
+<p>dependenciesのルールから、VM_deoptimizeがキックされ、 dependenciesに引っかかった要素をdeoptimizeする</p>
+<p>deoptimizeも、2種類あり、mutexで止めた際に、実行中でないなら、oopsのcodeを書き換える抱け。</p>
+<p>もし実行中だったら、frameを書き換えて、JITコンパイルしたコードからintepreter実行に切り替える</p>
+</div>
+<div class="section" id="id3">
+<h2>プロファイラ<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>C1コンパイラでは、</p>
+<p>プロファイルした情報を活用する部分と、</p>
+<p>C1コンパイラが生成したコードにプロファイルする命令を埋め込む部分がある。</p>
+<p>プロファイル系のオプション</p>
+<div class="highlight-python"><pre>product(bool, C1ProfileCalls, true,                                       \
+        "Profile calls when generating code for updating MDOs")           \
+                                                                          \
+// dead
+product(bool, C1ProfileVirtualCalls, true,                                \
+        "Profile virtual calls when generating code for updating MDOs")   \
+                                                                          \
+product(bool, C1ProfileInlinedCalls, true,                                \
+        "Profile inlined calls when generating code for updating MDOs")   \
+                                                                          \
+product(bool, C1ProfileBranches, true,                                    \
+        "Profile branches when generating code for updating MDOs")        \
+                                                                          \
+product(bool, C1ProfileCheckcasts, true,                                  \
+        "Profile checkcasts when generating code for updating MDOs")      \</pre>
+</div>
+<p>主にプロファイルはインタプリタが行っているが、</p>
+<p>C1コンパイラがJITコンパイルしたコードにも埋め込み可能になっている。</p>
+<p>JITコンパイルしたコードに埋め込む場合、2回目、3回目のJITコンパイルが行われるはず</p>
+<p>複数回のJITコンパイルの条件は不明。。</p>
+<p>プロファイルの様子は、TemplateIntepreterの解説に期待</p>
+</div>
+<div class="section" id="hir-lir">
+<h2>HIR から LIR への変換<a class="headerlink" href="#hir-lir" title="Permalink to this headline">¶</a></h2>
+<p>HIRからLIRへの変換はLIRGeneratorが行う。</p>
+<p>visitorでHIRを走査し、HIRに対して複数のLIRへ分解する</p>
+<p>LIRは仮想レジスタを無限に持つことを仮定し、レジスタ割り付けで実レジスタを割り振る</p>
+<p>void LIRGenerator::block_do(BlockBegin* block)</p>
+<div class="highlight-python"><pre>block_do_prolog(block);
+  __ branch_destination(block-&gt;label());  &lt;-- label設定
+
+set_block(block);
+
+for (Instruction* instr = block; instr != NULL; instr = instr-&gt;next()) {
+  if (instr-&gt;is_pinned()) do_root(instr);
+}
+
+set_block(NULL);
+block_do_epilog(block);</pre>
+</div>
+<p>void LIRGenerator::do_IfOp(IfOp* x)</p>
+<div class="highlight-python"><pre>// Code for  :  x-&gt;x() {x-&gt;cond()} x-&gt;y() ? x-&gt;tval() : x-&gt;fval()
+
+  LIRItem left(x-&gt;x(), this);
+  LIRItem right(x-&gt;y(), this);
+  left.load_item();
+  if (can_inline_as_constant(right.value())) {
+    right.dont_load_item();
+  } else {
+    right.load_item();
+  }
+
+  LIRItem t_val(x-&gt;tval(), this);
+  LIRItem f_val(x-&gt;fval(), this);
+  t_val.dont_load_item();
+  f_val.dont_load_item();
+  LIR_Opr reg = rlock_result(x);
+
+  __ cmp(lir_cond(x-&gt;cond()), left.result(), right.result());
+  __ cmove(lir_cond(x-&gt;cond()), t_val.result(), f_val.result(), reg, as_BasicType(x-&gt;x()-&gt;type()));
+}</pre>
+</div>
+<p>invokeの処理なんかは複雑で面白いかもしれない</p>
+</div>
+</div>
+
+
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="precompile.html">コンパイル前の動作</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="c1_optimization.html">C1コンパイラのHIR最適化</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+    <div class="footer">
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+  </body>
+</html>

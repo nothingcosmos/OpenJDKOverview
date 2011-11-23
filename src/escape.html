@@ -1,0 +1,117 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>BytecodeEscapeAnalysis &mdash; OpenJDK Internals 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/print.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <script type="text/javascript" src="../static/underscore.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
+    <link rel="next" title="sample code factIf" href="factIf.html" />
+    <link rel="prev" title="Devirtualization" href="devirtualize.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="../index.html">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>BytecodeEscapeAnalysis</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        «&#160;&#160;<a href="devirtualize.html">Devirtualization</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="factIf.html">sample code factIf</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="bytecodeescapeanalysis">
+<h1>BytecodeEscapeAnalysis<a class="headerlink" href="#bytecodeescapeanalysis" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="ci-bcescapeanalyzer">
+<h2>ci/bcEscapeAnalyzer<a class="headerlink" href="#ci-bcescapeanalyzer" title="Permalink to this headline">¶</a></h2>
+<p>opto/escape.cpp</p>
+<div class="highlight-python"><pre>case Op_CallStaticJava:
+// For a static call, we know exactly what method is being called.
+// Use bytecode estimator to record the call's escape affects
+{
+  ciMethod *meth = call-&gt;as_CallJava()-&gt;method();
+  BCEscapeAnalyzer *call_analyzer = (meth !=NULL) ? meth-&gt;get_bcea() : NULL;</pre>
+</div>
+<p>Bytecodesをブロック単位でイテレートしながら、解析する</p>
+<p>set_xxx()でフラグ操作が追えるけど、なんかの論文読んだ方が詳細を理解するのは早いかも</p>
+</div>
+<div class="section" id="escapeanalysis">
+<h2>EscapeAnalysisの解析結果<a class="headerlink" href="#escapeanalysis" title="Permalink to this headline">¶</a></h2>
+<p>UnknownEscape</p>
+<p>GlobalEscape</p>
+<p>ArgEscape</p>
+<p>NoEscape</p>
+</div>
+<div class="section" id="id1">
+<h2>EscapeAnalysisの解析結果の用途<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>EscapeStateは、node-&gt;escape_state() で取得できる。</p>
+<ol class="arabic simple">
+<li>LockNode/UnlockNodeの削除</li>
+</ol>
+<blockquote>
+<div><p>callnode.cpp</p>
+<p>GlobalEscapeで無ければ削除しちゃう</p>
+</div></blockquote>
+<ol class="arabic simple" start="2">
+<li>is_scalar_replaceable()</li>
+</ol>
+<blockquote>
+<div><p>compute_escape()で、EscapeAnalysisが終わった後、split_unique_types()でis_scalar_replaceableを立てて歩く</p>
+<p>最終的には、PhaseMacroExpand::eliminate_allocate_node()の解析が走り、可能であればallocを削除する</p>
+<p>bool PhaseMacroExpand::scalar_replacement()</p>
+<p>オプションで様子を眺める場合、PrintEliminateAllocationsで可能なはず</p>
+</div></blockquote>
+<p>他にも、connectingGraphっていうクラスが専用のメソッドを提供している???</p>
+</div>
+</div>
+
+
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="devirtualize.html">Devirtualization</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="factIf.html">sample code factIf</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+    <div class="footer">
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+  </body>
+</html>

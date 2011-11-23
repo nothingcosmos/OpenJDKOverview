@@ -1,0 +1,274 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Devirtualization &mdash; OpenJDK Internals 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/print.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <script type="text/javascript" src="../static/underscore.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
+    <link rel="next" title="BytecodeEscapeAnalysis" href="escape.html" />
+    <link rel="prev" title="C1コンパイラのHIR最適化" href="c1_optimization.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="../index.html">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>Devirtualization</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        «&#160;&#160;<a href="c1_optimization.html">C1コンパイラのHIR最適化</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="escape.html">BytecodeEscapeAnalysis</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="devirtualization">
+<h1>Devirtualization<a class="headerlink" href="#devirtualization" title="Permalink to this headline">¶</a></h1>
+<p>C1とC2のDevirtualizeは異なるので、詳細を比較する</p>
+<p>C1では、abstract methodのDevirtualizeが行われないなど、違いがある</p>
+<p>share/c1/c1_GraphBuilder.cpp::invoke()</p>
+<div class="highlight-python"><pre>if (cha_monomorphic_target != NULL) {
+  if (cha_monomorphic_target-&gt;is_abstract()) {
+    // Do not optimize for abstract methods
+    cha_monomorphic_target = NULL;
+  }
+}</pre>
+</div>
+<div class="section" id="id1">
+<h2>ポイントとなるメソッド<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>C1での概念</p>
+<blockquote>
+<div><p>cha_monomorphic_target</p>
+<p>exact_target</p>
+</div></blockquote>
+<p>C1で使用したメソッド</p>
+<blockquote>
+<div><p>ciMethod* target; &lt;&#8211; src/share/vm/ci</p>
+<p>target-&gt;resolve_invoke()</p>
+<p>target-&gt;find_monomorphic_target()</p>
+</div></blockquote>
+<p>脱最適化の予約</p>
+<blockquote>
+<div>dependency_recorder()-&gt;assert_xxx(receiver_klass)</div></blockquote>
+</div>
+<div class="section" id="c2-opto-devirtualization">
+<h2>C2(opto)でのDevirtualization<a class="headerlink" href="#c2-opto-devirtualization" title="Permalink to this headline">¶</a></h2>
+<p>file opto/doCall.cpp</p>
+<p>Compile::call_generator()</p>
+<div class="highlight-python"><pre>doCall.cpp: receiver_method = call_method-&gt;resolve_invoke(jvms-&gt;method()-&gt;holder(),
+doCall.cpp: next_receiver_method = call_method-&gt;resolve_invoke(jvms-&gt;method()-&gt;holder(),</pre>
+</div>
+<p>Parse::optimize_inlining()</p>
+<div class="highlight-python"><pre>doCall.cpp: ciMethod* exact_method = dest_method-&gt;resolve_invoke(calling_klass, actual_receiver);
+doCall.cpp: ciMethod* cha_monomorphic_target = dest_method-&gt;find_monomorphic_target(calling_klass, klass, actual_receiver);</pre>
+</div>
+<div class="section" id="optimize-inlining">
+<h3>optimize_inlining()<a class="headerlink" href="#optimize-inlining" title="Permalink to this headline">¶</a></h3>
+<p>シンプルというか、C1より大雑把な見立てでDevirtualizeを決める</p>
+</div>
+<div class="section" id="call-generator">
+<h3>call_generator()<a class="headerlink" href="#call-generator" title="Permalink to this headline">¶</a></h3>
+<p>TypeProfileMajorReceiverPercent 90%</p>
+<p>TypeProfileしながら、90%以上だったらdevirtualizeしてる</p>
+<p>複数の可能性があっても、Devirtualizeを試行する</p>
+<p>receiver_count &gt; 0 のcode</p>
+<div class="highlight-python"><pre>// Try using the type profile.
+if (call_is_virtual &amp;&amp; site_count &gt; 0 &amp;&amp; receiver_count &gt; 0) {
+  // The major receiver's count &gt;= TypeProfileMajorReceiverPercent of site_count.
+  // 初期オプションでは、90%以上
+  bool have_major_receiver = (100.*profile.receiver_prob(0) &gt;= (float)TypeProfileMajorReceiverPercent);
+  ciMethod* receiver_method = NULL;
+
+  // (1) 90%以上
+  // (2) 候補が1つだけ
+  // (3) 候補が2つだけ、かつオプションで候補2つの脱仮想化+Inliningが許可されている場合
+  if (have_major_receiver || profile.morphism() == 1 ||
+      (profile.morphism() == 2 &amp;&amp; UseBimorphicInlining)) { &lt;-- receiverが2の場合
+    // receiver_method = profile.method();
+    // Profiles do not suggest methods now.  Look it up in the major receiver.
+    receiver_method = call_method-&gt;resolve_invoke(jvms-&gt;method()-&gt;holder(),
+                                                  profile.receiver(0)); &lt;-- ここはreceiver0
+  }
+  if (receiver_method != NULL) {
+    // The single majority receiver sufficiently outweighs the minority.
+    CallGenerator* hit_cg = this-&gt;call_generator(receiver_method,
+                                                 vtable_index, !call_is_virtual, jvms, allow_inline, prof_factor);
+    if (hit_cg != NULL) {
+      // Look up second receiver.
+      CallGenerator* next_hit_cg = NULL;
+      ciMethod* next_receiver_method = NULL;
+      if (profile.morphism() == 2 &amp;&amp; UseBimorphicInlining) {
+        next_receiver_method = call_method-&gt;resolve_invoke(jvms-&gt;method()-&gt;holder(),
+                                                           profile.receiver(1));
+        if (next_receiver_method != NULL) {
+          next_hit_cg = this-&gt;call_generator(next_receiver_method,
+                                             vtable_index, !call_is_virtual, jvms,
+                                             allow_inline, prof_factor);
+          if (next_hit_cg != NULL &amp;&amp; !next_hit_cg-&gt;is_inline() &amp;&amp;
+              have_major_receiver &amp;&amp; UseOnlyInlinedBimorphic) {
+            // Skip if we can't inline second receiver's method
+            next_hit_cg = NULL;
+          }
+        }
+      }
+      CallGenerator* miss_cg;
+      Deoptimization::DeoptReason reason = (profile.morphism() == 2) ?
+        Deoptimization::Reason_bimorphic :
+        Deoptimization::Reason_class_check;
+
+      if (( profile.morphism() == 1 ||
+            (profile.morphism() == 2 &amp;&amp; next_hit_cg != NULL) ) &amp;&amp;
+          // too_many_traps()の場合、脱仮想化によるパフォーマンス低下が懸念されるため、抑止
+          !too_many_traps(jvms-&gt;method(), jvms-&gt;bci(), reason)
+         ) {
+        // Generate uncommon trap for class check failure path
+        // in case of monomorphic or bimorphic virtual call site.
+
+        // C2コンパイラの脱仮想化の保証は、uncommon_trap()の埋め込みで行うっぽい
+        // Deoptimizationへのtrap bimorphic or class_check
+        miss_cg = CallGenerator::for_uncommon_trap(call_method, reason,
+                                                   Deoptimization::Action_maybe_recompile);
+      } else {
+        // Generate virtual call for class check failure path
+        // in case of polymorphic virtual call site.
+        miss_cg = CallGenerator::for_virtual_call(call_method, vtable_index);
+      }
+      // 第1候補(receiver0)と第2候補(receiver1)をpredicated_callで脱仮想化
+      // miss_cg     &lt;-- 脱最適化
+      // hit_cg      &lt;-- 第1候補
+      // next_hit_cg &lt;-- 第2候補
+      if (miss_cg != NULL) {
+        if (next_hit_cg != NULL) {
+          NOT_PRODUCT(trace_type_profile(jvms-&gt;method(), jvms-&gt;depth(), jvms-&gt;bci(), next_receiver_method, profile.receiver(1), si
+          // We don't need to record dependency on a receiver here and below.
+          // Whenever we inline, the dependency is added by Parse::Parse().
+          miss_cg = CallGenerator::for_predicted_call(profile.receiver(1),
+              miss_cg,
+              next_hit_cg,
+              PROB_MAX);
+        }
+        if (miss_cg != NULL) {
+          NOT_PRODUCT(trace_type_profile(jvms-&gt;method(), jvms-&gt;depth(), jvms-&gt;bci(), receiver_method, profile.receiver(0), site_co
+          cg = CallGenerator::for_predicted_call(profile.receiver(0),
+               miss_cg,
+               hit_cg,
+               profile.receiver_prob(0));
+          if (cg != NULL)  return cg;
+        }
+      }
+    }
+  }
+}
+
+CallGenerator* CallGenerator::for_predicted_call(ciKlass* predicted_receiver,
+                                                 CallGenerator* if_missed,
+                                                 CallGenerator* if_hit,
+                                                 float hit_prob);
+
+if (nullcheck &amp;&amp; typecheck(第1候補)) {
+  //第1候補
+} else
+  if (nullcheck &amp;&amp; typecheck(第2候補)) {
+    //第2候補
+  } else {
+    //脱最適化
+  }
+}</pre>
+</div>
+</div>
+<div class="section" id="callgenerator-for-predicated-call">
+<h3>CallGenerator::for_predicated_call()<a class="headerlink" href="#callgenerator-for-predicated-call" title="Permalink to this headline">¶</a></h3>
+<p>以下の順番で挿入っぽい</p>
+<p>null_check</p>
+<p>type_check</p>
+<p>diamond if_missed</p>
+<p>diamond if_hit</p>
+</div>
+<div class="section" id="can-be-statically-bound">
+<h3>can_be_statically_bound()<a class="headerlink" href="#can-be-statically-bound" title="Permalink to this headline">¶</a></h3>
+<p>Parse::optimize_inlining()</p>
+<div class="highlight-python"><pre>// If it is obviously final, do not bother to call find_monomorphic_target,
+// because the class hierarchy checks are not needed, and may fail due to
+// incompletely loaded classes.  Since we do our own class loading checks
+// in this module, we may confidently bind to any method.
+if (dest_method-&gt;can_be_statically_bound()) {
+  return dest_method;
+}
+
+bool methodOopDesc::can_be_statically_bound() const {
+  if (is_final_method())  return true;
+  return vtable_index() == nonvirtual_vtable_index;
+}</pre>
+</div>
+</div>
+</div>
+<div class="section" id="id2">
+<h2>疑問点<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="id3">
+<h2>おまけ<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>実はSharkでもresolve_invoke()と、find_monomorphic_target()を呼び出し、Devirtualizeを試行する</p>
+<p>ちゃんとdependencyに登録もする</p>
+<p>ただし、非常に簡易な解析しかしないので、C1より抑え気味</p>
+<p>ex) shark/sharkTopLevelBlock.cpp improve_virtual_call()</p>
+<p>code</p>
+<div class="highlight-python"><pre>SharkTopLevelBlock::do_call()
+  ciMethod *optimized_method = improve_virtual_call()
+  if (optimized_method) {
+    call_method = optimized_method;
+    call_is_virtual = false;
+  }
+  SharkInliner::attempt_inline(call_method, current_state())</pre>
+</div>
+<p>どうやら、entry_pointや、deoptimize時のguard文も随所に挿入</p>
+</div>
+</div>
+
+
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="c1_optimization.html">C1コンパイラのHIR最適化</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="escape.html">BytecodeEscapeAnalysis</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+    <div class="footer">
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+  </body>
+</html>

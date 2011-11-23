@@ -1,0 +1,401 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>コンパイル前の動作 &mdash; OpenJDK Internals 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/print.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <script type="text/javascript" src="../static/underscore.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
+    <link rel="next" title="C1コンパイラの内部構造" href="c1_internals.html" />
+    <link rel="prev" title="OpenJDK HotSpot Client Compiler Overview" href="overview.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="../index.html">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>コンパイル前の動作</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        «&#160;&#160;<a href="overview.html"><em>OpenJDK HotSpot Client Compiler Overview</em></a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="c1_internals.html">C1コンパイラの内部構造</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="id1">
+<h1>コンパイル前の動作<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="jit">
+<h2>JITコンパイラ<a class="headerlink" href="#jit" title="Permalink to this headline">¶</a></h2>
+<p>JVMは、最初bytecodeをclassloaderが呼び出した後、インタプリタ実行を行う。</p>
+<p>インタプリタ実行中にプロファイルを行い、条件を満たしたらJITコンパイルする</p>
+<img alt="../images/JVM.png" src="../images/JVM.png" />
+<p>JITコンパイルは、コンパイラの抽象クラス経由で操作する。
+コンパイラクラスは3種類ある.</p>
+<p>C1/C2/Shark</p>
+<p>C1コンパイラ</p>
+<blockquote>
+<div><p>-clientオプション指定時のコンパイラ</p>
+<p>コンパイル時間が短く、メモリ使用量もそこそこ。
+大した最適化をしない割にそこそこ高速に動作するコードを生成するのが特徴</p>
+<p>JVM間の比較では、ベンチマーク結果がそこそこ高い。</p>
+</div></blockquote>
+<p>C2コンパイラ</p>
+<blockquote>
+<div><p>-serverオプション指定時のコンパイラ。今回は扱わない。</p>
+<p>コンパイル時間はそこそこ長く、C1より高速に動作するコードを生成する。
+また、コンパイル時のメモリも大きく消費する。</p>
+<p>詳細は、vm/opto参照。C1とは中間言語が異なり、Idealと呼ばれる中間言語。</p>
+</div></blockquote>
+<p>Sharkコンパイラ</p>
+<blockquote>
+<div><p>使い方はまだちゃんと調べてない。</p>
+<p>LLVMと連携してJITコンパイルを行う.
+JITコンパイラをC1/C2ではなく、LLVMを使うということ。JVMの制御はそのまま。</p>
+<p>Sharkは、method単位でBytecodeをBitcodeに変換したのち、
+LLVMに渡してJITコンパイルする。</p>
+<p>LLVMにBitcodeを渡す際に何も小細工しないので、脱仮想化とかEscapeAnalysisとかさっぱり
+LLVMのBitcodeにMetadataを埋め込んで、
+(たとえば、このcallはこのメソッドに脱仮想化候補だとか、allocaはstack/register割り付け可能だとか)
+LLVMのJITコンパイラ起動時、上記metadata用最適化パスをオプションで渡せば連携できるはず。</p>
+<p>いろいろと夢広がる。
+現在は、対応アーキテクチャを増やすために使っている
+ex) ARM PowerPC PTX CBackend</p>
+<p>LLVM 3.0 のReleaseNoteから、Sharkの連携やIcedTeaとの連携のことがかかれているので、
+興味があるかたはLLVMのページへ</p>
+</div></blockquote>
+</div>
+<div class="section" id="id2">
+<h2>JITコンパイラが呼ばれる仕組み<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>compileBrokerがJITコンパイラを生成し、メソッド単位でコンパイルする</p>
+<p>compiler::compile_method()</p>
+<div class="highlight-python"><pre>compileBroker
+  compiler/abstructCompiler
+    compile_method(ciEnv*, ciMethod*, int entry_bci)</pre>
+</div>
+<p>条件を満たしたときにJITコンパイラを生成し、メソッド単位でJITコンパイルを行う。</p>
+<ul class="simple">
+<li>条件を満たしたときに ... vm/runtime/compilationPolicy</li>
+<li>JITコンパイラを生成  ... vm/compiler/compileBroker</li>
+</ul>
+<p>JITコンパイラは、JVMがメモリを確保して、別スレッドでコンパイルブローカーに処理を移譲する。</p>
+<p>JVMTIを使うので、スレッドが切れていて、処理が追いにくい。</p>
+<p>また、スレッド並列で、インタプリタと並行してJITコンパイルは走るが、</p>
+<p>-Xbatchオプションを指定すると、JITコンパイル中にインタプリタ実行を停止することができる。</p>
+<p>compileBroker::compilation_init()</p>
+<div class="highlight-python"><pre>// ------------------------------------------------------------------
+// CompileBroker::compilation_init
+//
+// Initialize the Compilation object
+void CompileBroker::compilation_init() {
+  _last_method_compiled[0] = '\0';
+
+#ifndef SHARK
+  // Set the interface to the current compiler(s).
+  int c1_count = CompilationPolicy::policy()-&gt;compiler_count(CompLevel_simple);
+  int c2_count = CompilationPolicy::policy()-&gt;compiler_count(CompLevel_full_optimization);
+#ifdef COMPILER1
+  if (c1_count &gt; 0) {
+    _compilers[0] = new Compiler();
+  }
+#endif // COMPILER1
+
+#ifdef COMPILER2
+  if (c2_count &gt; 0) {
+    _compilers[1] = new C2Compiler();
+  }
+#endif // COMPILER2
+
+#else // SHARK
+  int c1_count = 0;
+  int c2_count = 1;
+
+  _compilers[1] = new SharkCompiler();
+#endif // SHARK</pre>
+</div>
+<img alt="../images/classAbstractCompiler__inherit__graph.png" src="../images/classAbstractCompiler__inherit__graph.png" />
+<img alt="../images/classCompileBroker__coll__graph.png" src="../images/classCompileBroker__coll__graph.png" />
+</div>
+<div class="section" id="id3">
+<h2>JITコンパイルの入出力<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>JVMのJITコンパイラは、ciMethodクラスが入力</p>
+<p>compiler::compile_method()</p>
+<div class="highlight-python"><pre>compiler/abstructCompiler
+  compile_method(ciEnv*, ciMethod*, int entry_bci)</pre>
+</div>
+<p>JITコンパイラの出力の形式は複数存在する。</p>
+<ul class="simple">
+<li>method-&gt;codeの書き換え</li>
+<li>もし書き換え対象のメソッドを今実行中だったら。。。</li>
+</ul>
+<p>JITコンパイルの入り口のメソッド</p>
+<p>CompileBroker::compile_method_base()</p>
+<div class="highlight-python"><pre>void CompileBroker::compile_method_base(methodHandle method,
+                                        int osr_bci,
+                                        int comp_level,
+                                        methodHandle hot_method,
+                                        int hot_count,
+                                        const char* comment,
+                                        TRAPS) {</pre>
+</div>
+</div>
+<div class="section" id="id4">
+<h2>JITコンパイルする条件<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<p>JVMのインタプリタ実行中にprofileを行い、
+下記に示すカウンタをカウントアップする。</p>
+<ul class="simple">
+<li>invocation count<ul>
+<li>メソッドの呼び出し回数をカウント</li>
+</ul>
+</li>
+<li>backward branch count<ul>
+<li>ループの実行回数をカウント</li>
+</ul>
+</li>
+</ul>
+<p>invocation countのカウントアップ:</p>
+<div class="highlight-python"><pre>bytecodeInterpreter.cpp::BytecodeInterpreter::run()
+
+case method_entry: {
+  THREAD-&gt;set_do_not_unlock();
+  // count invocations
+  assert(initialized, "Interpreter not initialized");
+  if (_compiling) {
+    if (ProfileInterpreter) {
+      METHOD-&gt;increment_interpreter_invocation_count();
+    }
+    INCR_INVOCATION_COUNT;
+    if (INVOCATION_COUNT-&gt;reached_InvocationLimit()) {
+      CALL_VM((void)InterpreterRuntime::frequency_counter_overflow(THREAD, NULL), handle_exception);
+
+      // We no longer retry on a counter overflow
+
+      // istate-&gt;set_msg(retry_method);
+      // THREAD-&gt;clr_do_not_unlock();
+      // return;
+    }
+    SAFEPOINT;
+  }
+
+  if ((istate-&gt;_stack_base - istate-&gt;_stack_limit) != istate-&gt;method()-&gt;max_stack() + 1) {
+    // initialize
+    os::breakpoint();
+  }</pre>
+</div>
+<p>//memo frequency_counter_overflowでJITコンパイラを呼ぶはず</p>
+<p>backward branch countのカウントアップ</p>
+<div class="highlight-python"><pre>CASE(_goto):
+{
+  int16_t offset = (int16_t)Bytes::get_Java_u2(pc + 1);
+  address branch_pc = pc;
+  UPDATE_PC(offset);
+  DO_BACKEDGE_CHECKS(offset, branch_pc);
+  CONTINUE;
+}
+
+CASE(_goto_w):
+{
+  int32_t offset = Bytes::get_Java_u4(pc + 1);
+  address branch_pc = pc;
+  UPDATE_PC(offset);
+  DO_BACKEDGE_CHECKS(offset, branch_pc);
+  CONTINUE;
+}
+
+#define DO_BACKEDGE_CHECKS(skip, branch_pc)                                                         \
+if ((skip) &lt;= 0) {                                                                              \
+  if (UseLoopCounter) {                                                                         \
+    bool do_OSR = UseOnStackReplacement;                                                        \
+    BACKEDGE_COUNT-&gt;increment();                                                                \
+    if (do_OSR) do_OSR = BACKEDGE_COUNT-&gt;reached_InvocationLimit();                             \
+    if (do_OSR) {                                                                               \
+      nmethod*  osr_nmethod;                                                                    \
+      OSR_REQUEST(osr_nmethod, branch_pc);                                                      \
+      if (osr_nmethod != NULL &amp;&amp; osr_nmethod-&gt;osr_entry_bci() != InvalidOSREntryBci) {          \
+        intptr_t* buf = SharedRuntime::OSR_migration_begin(THREAD);                             \
+        istate-&gt;set_msg(do_osr);                                                                \
+        istate-&gt;set_osr_buf((address)buf);                                                      \
+        istate-&gt;set_osr_entry(osr_nmethod-&gt;osr_entry());                                        \
+        return;                                                                                 \
+      }                                                                                         \
+    }                                                                                           \
+  }  /* UseCompiler ... */                                                                      \
+  INCR_INVOCATION_COUNT;                                                                        \
+  SAFEPOINT;                                                                                    \
+}</pre>
+</div>
+<p>インタプリタがprofileのカウンタを更新する様子</p>
+<p>gdb stack trace</p>
+<div class="highlight-python"><pre>Breakpoint 5, NonTieredCompPolicy::reset_counter_for_invocation_event (this=0x807a738, m=...)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/runtime/compilationPolicy.cpp:189
+  189   m-&gt;invocation_counter()-&gt;set_carry();
+  (gdb) up
+#1  0x004cbdd5 in SimpleCompPolicy::method_invocation_event (this=0x807a738, m=..., __the_thread__=0x806d000)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/runtime/compilationPolicy.cpp:394
+  394   reset_counter_for_invocation_event(m);
+  (gdb)
+#2  0x004cba19 in NonTieredCompPolicy::event (this=0x807a738, method=..., inlinee=..., branch_bci=-1, bci=-1,
+  comp_level=CompLevel_none, __the_thread__=0x806d000)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/runtime/compilationPolicy.cpp:323
+  323       method_invocation_event(method, CHECK_NULL);
+  (gdb)
+#3  0x005dafd2 in InterpreterRuntime::frequency_counter_overflow_inner (thread=0x806d000, branch_bcp=0x0)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/interpreter/interpreterRuntime.cpp:854
+  854   nmethod* osr_nm = CompilationPolicy::policy()-&gt;event(method, method, branch_bci, bci, CompLevel_none, thread);
+  (gdb)
+#4  0x005daced in InterpreterRuntime::frequency_counter_overflow (thread=0x806d000, branch_bcp=0x0)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/interpreter/interpreterRuntime.cpp:826
+  826   nmethod* nm = frequency_counter_overflow_inner(thread, branch_bcp);
+  (gdb)
+#5  0xb5fef92c in ?? ()
+  (gdb)</pre>
+</div>
+<p>//interpreterのgoto命令実行時にカウントアップ</p>
+<p>//memo OSR_REQESTマクロの中で、frequency_counter_overflow()を呼び出し</p>
+<p>JITコンパイラが呼ばれるのは、2つのケース</p>
+<p>対象のメソッドの呼び出し回数が規定回数以上になった場合</p>
+<ul>
+<li><p class="first">通常のJITコンパイル。メソッド単位でJITコンパイルする。</p>
+<p>次回呼ばれた際にインタプリタではなく、JITコンパイルしたコードを実行する</p>
+</li>
+</ul>
+<p>対象のループのバックエッジの通過回数が規定回数以上になった場合</p>
+<ul>
+<li><p class="first">現在実行中のメソッドをJITコンパイルする。</p>
+<p>現在実行中のメソッドなので、インタプリタからJITしたコードへ遷移するのが難しい</p>
+<p>インタプリタ実行中からJITしたコードへ遷移する技術をOnStackReplacementと呼ぶ。</p>
+<p>おもにsafepointを設けて(分岐の前や、分岐の集合地点)</p>
+<p>インタプリタ実行中のFrameとJITコンパイルしたコードのFrameを記録、計算し、</p>
+<p>遷移できるようにテーブルを作成するはず</p>
+</li>
+</ul>
+<p>//OnStackReplacementは、runtime/sharedRuntime.cpp::SharedRuntime::OSR_migration_begin()</p>
+<p>//詳細は&#8221;コンパイラとバーチャルマシン&#8221;っていう書籍が図入りで説明している</p>
+</div>
+<div class="section" id="id5">
+<h2>JITコンパイルする際のしきい値<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<p>JITコンパイルのしきい値は、clientコンパイラの場合、2000回, serverコンパイラの場合、15000回のはず。</p>
+<p>JITコンパイルのしきい値は、CompLevel で計算方法が異なるらしい</p>
+<p>CompLevel_simple or CompLevel_full_optimization or CompLevel_limited_profile or CompLevel_full_profile</p>
+<p>オプション:</p>
+<ul class="simple">
+<li>-XX:CompileThreshold=xxx</li>
+</ul>
+<p>デフォルト:</p>
+<ul class="simple">
+<li>Tier3CompileThreshold  2000</li>
+<li>Tier4CompileThreshold 15000</li>
+</ul>
+<p>compile_methodが呼ばれた際のstack trace</p>
+<p>gdb stack trace</p>
+<div class="highlight-python"><pre>// topからdownしていきます
+#6  0xb5fef92c in ?? ()  &lt;-- template intepreter経由なのでこれ以上終えない
+  (gdb) down
+#5  0x005daced in InterpreterRuntime::frequency_counter_overflow (thread=0x806d000, branch_bcp=0x0)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/interpreter/interpreterRuntime.cpp:826
+  826   nmethod* nm = frequency_counter_overflow_inner(thread, branch_bcp);
+  (gdb)
+#4  0x005dafd2 in InterpreterRuntime::frequency_counter_overflow_inner (thread=0x806d000, branch_bcp=0x0)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/interpreter/interpreterRuntime.cpp:854
+  854   nmethod* osr_nm = CompilationPolicy::policy()-&gt;event(method, method, branch_bci, bci, CompLevel_none, thread);
+  (gdb)
+#3  0x004cba19 in NonTieredCompPolicy::event (this=0x807a738, method=..., inlinee=..., branch_bci=-1, bci=-1,
+  comp_level=CompLevel_none, __the_thread__=0x806d000)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/runtime/compilationPolicy.cpp:323
+  323       method_invocation_event(method, CHECK_NULL);
+  (gdb)
+#2  0x004cbe50 in SimpleCompPolicy::method_invocation_event (this=0x807a738, m=..., __the_thread__=0x806d000)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/runtime/compilationPolicy.cpp:402
+  402                                     m, hot_count, comment, CHECK);
+  (gdb)
+#1  0x004cf34e in CompileBroker::compile_method (method=..., osr_bci=-1, comp_level=1, hot_method=..., hot_count=166,
+  comment=0x94b7f6 "count", __the_thread__=0x806d000)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/compiler/compileBroker.cpp:1084
+  1084      compile_method_base(method, osr_bci, comp_level, hot_method, hot_count, comment, CHECK_0);
+  (gdb)
+#0  CompileBroker::compile_method_base (method=..., osr_bci=-1, comp_level=1, hot_method=..., hot_count=166,
+  comment=0x94b7f6 "count", __the_thread__=0x806d000)
+  at /home/elise/language/openjdk6/hotspot/src/share/vm/compiler/compileBroker.cpp:840
+  840   if (!_initialized ) {</pre>
+</div>
+<p>InterpreterInvocationLimitとInterpreterBackwardBranchLimitの設定</p>
+<div class="highlight-python"><pre>void InvocationCounter::reinitialize(bool delay_overflow) {
+  // define states
+  guarantee((int)number_of_states &lt;= (int)state_limit, "adjust number_of_state_bits");
+  def(wait_for_nothing, 0, do_nothing);
+  if (delay_overflow) {
+    def(wait_for_compile, 0, do_decay);
+  } else {
+    def(wait_for_compile, 0, dummy_invocation_counter_overflow);
+  }
+
+  InterpreterInvocationLimit = CompileThreshold &lt;&lt; number_of_noncount_bits;
+  InterpreterProfileLimit = ((CompileThreshold * InterpreterProfilePercentage) / 100)&lt;&lt; number_of_noncount_bits;
+
+  // When methodData is collected, the backward branch limit is compared against a
+  // methodData counter, rather than an InvocationCounter.  In the former case, we
+  // don't need the shift by number_of_noncount_bits, but we do need to adjust
+  // the factor by which we scale the threshold.
+  if (ProfileInterpreter) {
+    InterpreterBackwardBranchLimit = (CompileThreshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / 100;
+  } else {
+    InterpreterBackwardBranchLimit = ((CompileThreshold * OnStackReplacePercentage) / 100) &lt;&lt; number_of_noncount_bits;
+  }</pre>
+</div>
+<p>ちなみに、clientの場合</p>
+<p>InterpreterInvocationLimit = 12000</p>
+<p>InterpreterBackwardBranchLimit = 111960</p>
+<p>serverの場合</p>
+<p>InterpreterInvocationLimit = 80000</p>
+<p>InterpreterBackwardBranchLimit = 10700</p>
+<p>clientコンパイラのしきい値って、メソッド呼び出しが1500回で、OnStackReplacementが14000回じゃないの？</p>
+</div>
+</div>
+
+
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="overview.html"><em>OpenJDK HotSpot Client Compiler Overview</em></a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="c1_internals.html">C1コンパイラの内部構造</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+    <div class="footer">
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+  </body>
+</html>
