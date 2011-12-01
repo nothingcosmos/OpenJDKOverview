@@ -17,6 +17,7 @@ Contents:
    src/c1_optimization
    src/devirtualize
    src/escape
+   src/profiling
    src/factIf
    src/factFor
    src/reference
