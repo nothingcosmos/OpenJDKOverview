@@ -50,42 +50,14 @@
   <div class="section" id="todo">
 <h1>todo<a class="headerlink" href="#todo" title="Permalink to this headline">¶</a></h1>
 <p>今後の予定</p>
-<div class="section" id="c2-devirtualization">
-<h2>C2 Devirtualization<a class="headerlink" href="#c2-devirtualization" title="Permalink to this headline">¶</a></h2>
-<p>optpの中の、Devirtualizationの詳細</p>
-<p>主にopto/doCall.cppに記述</p>
-</div>
-<div class="section" id="escapeanalysis">
-<h2>EscapeAnalysis<a class="headerlink" href="#escapeanalysis" title="Permalink to this headline">¶</a></h2>
-<p>opto/escapeの詳細</p>
-<p>opto/escape.hpp</p>
-<div class="highlight-python"><pre>//
-// Adaptation for C2 of the escape analysis algorithm described in:
-//
-// [Choi99] Jong-Deok Shoi, Manish Gupta, Mauricio Seffano,
-//          Vugranam C. Sreedhar, Sam Midkiff,
-//          "Escape Analysis for Java", Procedings of ACM SIGPLAN
-//          OOPSLA  Conference, November 1, 1999
-//
-// The flow-insensitive analysis described in the paper has been implemented.
-//
-// The analysis requires construction of a "connection graph" (CG) for
-// the method being analyzed.  The nodes of the connection graph are:
-//
-//     -  Java objects (JO)
-//     -  Local variables (LV)
-//     -  Fields of an object (OF),  these also include array elements
-//
-// The CG contains 3 types of edges:
-//
-//   -  PointsTo  (-P&gt;)    {LV, OF} to JO
-//   -  Deferred  (-D&gt;)    from {LV, OF} to {LV, OF}
-//   -  Field     (-F&gt;)    from JO to OF</pre>
-</div>
+<div class="section" id="c2-opto">
+<h2>C2(opto)<a class="headerlink" href="#c2-opto" title="Permalink to this headline">¶</a></h2>
+<p>ytoshimaさんの資料を自分なりにまとめてみたい。</p>
 </div>
 <div class="section" id="superword">
 <h2>superword<a class="headerlink" href="#superword" title="Permalink to this headline">¶</a></h2>
 <p>superwordという名前で実装されている、C2コンパイラのベクトル化の詳細</p>
+<p>最終的には、x86のSSEへ落とすらしい。</p>
 <p>opto/superword.hpp</p>
 <div class="highlight-python"><pre>//                  S U P E R W O R D   T R A N S F O R M
 //
@@ -111,7 +83,6 @@
 <p>sharkは、BytecodeをLLVM IRへ変換したのち、LLVMを使用してJITコンパイルするモジュール</p>
 <p>inline展開およびdevirtualizationは、sharkモジュール中で行う。</p>
 <p>必要なstabの挿入は、LLVM IRへの変換の際に行う。</p>
-<hr class="docutils" />
 </div>
 </div>
 

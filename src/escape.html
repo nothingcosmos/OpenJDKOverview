@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../static/doctools.js"></script>
     <script type="text/javascript" src="../_static/theme_extras.js"></script>
     <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
-    <link rel="next" title="sample code factIf" href="factIf.html" />
+    <link rel="next" title="Profiling" href="profiling.html" />
     <link rel="prev" title="Devirtualization" href="devirtualize.html" /> 
   </head>
   <body>
@@ -43,7 +43,7 @@
         &#160;&#160;::&#160;&#160;
         <a class="uplink" href="../index.html">Contents</a>
         &#160;&#160;::&#160;&#160;
-        <a href="factIf.html">sample code factIf</a>&#160;&#160;»
+        <a href="profiling.html">Profiling</a>&#160;&#160;»
         </p>
 
       </div>
@@ -52,8 +52,42 @@
         
   <div class="section" id="bytecodeescapeanalysis">
 <h1>BytecodeEscapeAnalysis<a class="headerlink" href="#bytecodeescapeanalysis" title="Permalink to this headline">¶</a></h1>
+<p>HotSpotには、2種類のEscapeAnlaysisを実装している。</p>
 <div class="section" id="ci-bcescapeanalyzer">
 <h2>ci/bcEscapeAnalyzer<a class="headerlink" href="#ci-bcescapeanalyzer" title="Permalink to this headline">¶</a></h2>
+<p>oops中のBytecodeを解析する</p>
+</div>
+<div class="section" id="opto-escape">
+<h2>opto/escape<a class="headerlink" href="#opto-escape" title="Permalink to this headline">¶</a></h2>
+<p>Idealを解析する</p>
+<p>opto/escape.hpp</p>
+<div class="highlight-python"><pre>//
+// Adaptation for C2 of the escape analysis algorithm described in:
+//
+// [Choi99] Jong-Deok Shoi, Manish Gupta, Mauricio Seffano,
+//          Vugranam C. Sreedhar, Sam Midkiff,
+//          "Escape Analysis for Java", Procedings of ACM SIGPLAN
+//          OOPSLA  Conference, November 1, 1999
+//
+// The flow-insensitive analysis described in the paper has been implemented.
+//
+// The analysis requires construction of a "connection graph" (CG) for
+// the method being analyzed.  The nodes of the connection graph are:
+//
+//     -  Java objects (JO)
+//     -  Local variables (LV)
+//     -  Fields of an object (OF),  these also include array elements
+//
+// The CG contains 3 types of edges:
+//
+//   -  PointsTo  (-P&gt;)    {LV, OF} to JO
+//   -  Deferred  (-D&gt;)    from {LV, OF} to {LV, OF}
+//   -  Field     (-F&gt;)    from JO to OF</pre>
+</div>
+<div class="section" id="id1">
+<h3>ci/bcEscapeAnalyzerの詳細<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>opto/escapeから補助的に呼ばれ、 bytecodeのstore命令や、put等を解析する。</p>
+<p>IdealのCallNodeがstaticだった場合に、BCEscapeAnalyzerを使用する</p>
 <p>opto/escape.cpp</p>
 <div class="highlight-python"><pre>case Op_CallStaticJava:
 // For a static call, we know exactly what method is being called.
@@ -65,33 +99,38 @@
 <p>Bytecodesをブロック単位でイテレートしながら、解析する</p>
 <p>set_xxx()でフラグ操作が追えるけど、なんかの論文読んだ方が詳細を理解するのは早いかも</p>
 </div>
+<div class="section" id="id2">
+<h3>opto/escapeの詳細<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>あとで</p>
+</div>
 <div class="section" id="escapeanalysis">
-<h2>EscapeAnalysisの解析結果<a class="headerlink" href="#escapeanalysis" title="Permalink to this headline">¶</a></h2>
+<h3>EscapeAnalysisの解析結果<a class="headerlink" href="#escapeanalysis" title="Permalink to this headline">¶</a></h3>
 <p>UnknownEscape</p>
 <p>GlobalEscape</p>
 <p>ArgEscape</p>
 <p>NoEscape</p>
 </div>
-<div class="section" id="id1">
-<h2>EscapeAnalysisの解析結果の用途<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
-<p>EscapeStateは、node-&gt;escape_state() で取得できる。</p>
+<div class="section" id="id3">
+<h3>EscapeAnalysisの解析結果の活用方法<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>EscapeAnalysisの活用方法は、2つある。</p>
+<p>解析結果であるEscapeStateは、Idealのnode-&gt;escape_state() で取得できる。</p>
 <ol class="arabic simple">
 <li>LockNode/UnlockNodeの削除</li>
 </ol>
 <blockquote>
-<div><p>callnode.cpp</p>
-<p>GlobalEscapeで無ければ削除しちゃう</p>
+<div><p>callnode.cppに処理が記述してある。</p>
+<p>LockやUnlockのNodeは、対象のオブジェクトがGlobalEscapeで無ければ削除可能である</p>
 </div></blockquote>
 <ol class="arabic simple" start="2">
 <li>is_scalar_replaceable()</li>
 </ol>
 <blockquote>
-<div><p>compute_escape()で、EscapeAnalysisが終わった後、split_unique_types()でis_scalar_replaceableを立てて歩く</p>
-<p>最終的には、PhaseMacroExpand::eliminate_allocate_node()の解析が走り、可能であればallocを削除する</p>
+<div><p>opto/escape.cpp:compute_escape()において、EscapeAnalysisが終わった後、split_unique_types()でis_scalar_replaceableを立てて歩く</p>
+<p>後々のフェーズであるPhaseMacroExpand::eliminate_allocate_node()の解析が走り、可能であればallocを削除する</p>
 <p>bool PhaseMacroExpand::scalar_replacement()</p>
 <p>オプションで様子を眺める場合、PrintEliminateAllocationsで可能なはず</p>
 </div></blockquote>
-<p>他にも、connectingGraphっていうクラスが専用のメソッドを提供している???</p>
+</div>
 </div>
 </div>
 
@@ -104,7 +143,7 @@
         &#160;&#160;::&#160;&#160;
         <a class="uplink" href="../index.html">Contents</a>
         &#160;&#160;::&#160;&#160;
-        <a href="factIf.html">sample code factIf</a>&#160;&#160;»
+        <a href="profiling.html">Profiling</a>&#160;&#160;»
         </p>
 
       </div>
