@@ -18,10 +18,15 @@ Contents:
    src/devirtualize
    src/escape
    src/profiling
-   src/factIf
-   src/factFor
+   src/c2
+   src/osr
+   src/macro
+   src/cpu
+   src/javaone
    src/reference
    src/todo
+   src/factIf
+   src/factFor
 
 Indices and tables
 ==================
