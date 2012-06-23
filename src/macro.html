@@ -1,0 +1,153 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>OpenJDK opto macro &mdash; OpenJDK Internals 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/print.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <script type="text/javascript" src="../static/underscore.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
+    <link rel="next" title="JVMのCPU依存部分について" href="cpu.html" />
+    <link rel="prev" title="On-Stack Replacement" href="osr.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="../index.html">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>OpenJDK opto macro</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        «&#160;&#160;<a href="osr.html">On-Stack Replacement</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="cpu.html">JVMのCPU依存部分について</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="openjdk-opto-macro">
+<h1>OpenJDK opto macro<a class="headerlink" href="#openjdk-opto-macro" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="macro">
+<h2>macro<a class="headerlink" href="#macro" title="Permalink to this headline">¶</a></h2>
+<p>optp/macroでは、</p>
+<p>optoのメモリアロケーションやlock/unlock barrier系の特殊な操作がmacroとして定義されている。</p>
+<p>OpenJDK7からは、TLAB(Thread local allocation buffer)関連を上手く使うためのmacroも追加されていたかな？</p>
+<div class="section" id="id1">
+<h3>メモ書き<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>PrefetchReadNode</p>
+<p>PrefetchWriteNode</p>
+<p>PrefetchAllocationNode</p>
+<p>どこかで、zero initializeしないallocatorが追加されていたはず。</p>
+<p>関連option</p>
+<div class="highlight-python"><pre>product(intx, TrackedInitializationLimit, 50,                             \
+"When initializing fields, track up to this many words")          \
+\
+product(bool, ReduceFieldZeroing, true,                                   \
+"When initializing fields, try to avoid needless zeroing")        \
+\
+product(bool, ReduceInitialCardMarks, true,                               \
+"When initializing fields, try to avoid needless card marks")     \
+\
+product(bool, ReduceBulkZeroing, true,                                    \
+"When bulk-initializing, try to avoid needless zeroing")          \</pre>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>プリフェッチ<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>x86の場合、prefetcht0や、prefetchntaを自動挿入する。</p>
+<p>System.out.printf(&#8220;%dn&#8221;, sum)</p>
+<div class="highlight-python"><pre>59   B7: #     B23 B8 &lt;- B14 B6  Freq: 0.999983
+059     MOV    ECX, Thread::current()
+065     MOV    EAX,[ECX + #68]
+068     LEA    EBX,[EAX + #16]
+06b     MOV    EDI,java/lang/Class:exact *
+070     MOV    EBP,[EDI + #108] ! Field java/lang/System.out
+073     MOV    [ESP + #16],EBP
+077     CMPu   EBX,[ECX + #76]
+07a     Jnb,u  B23  P=0.000100 C=-1.000000
+07a
+080   B8: #     B9 &lt;- B7  Freq: 0.999883
+080     MOV    [ECX + #68],EBX
+083     PREFETCHNTA [EBX + #192]        ! Prefetch into non-temporal cache for write
+08a     MOV    [EAX],0x00000001
+090     PREFETCHNTA [EBX + #256]        ! Prefetch into non-temporal cache for write
+097     MOV    [EAX + #4],precise klass [Ljava/lang/Object;: 0x7ce47098:Constant:exact *
+09e     PREFETCHNTA [EBX + #320]        ! Prefetch into non-temporal cache for write
+0a5     MOV    [EAX + #8],#1
+0ac     PREFETCHNTA [EBX + #384]        ! Prefetch into non-temporal cache for write
+0b3     MOV    [EAX + #12],#0</pre>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="openjdk8">
+<h3>OpenJDK8<a class="headerlink" href="#openjdk8" title="Permalink to this headline">¶</a></h3>
+<p>以下のMemBarが新規追加されている。</p>
+<p>MemBarStoreStoreNode</p>
+<p>MemBarReleaseLockNode</p>
+<p>MemBarAcquireLockNode</p>
+</div>
+</div>
+</div>
+
+
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="osr.html">On-Stack Replacement</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="cpu.html">JVMのCPU依存部分について</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+
+    <div class="footer">
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+
+<script type="text/javascript">
+
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-15223787-2']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+ var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+ var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+ })();
+
+</script>
+
+
+  </body>
+</html>

@@ -131,6 +131,24 @@
 <p>オプションで様子を眺める場合、PrintEliminateAllocationsで可能なはず</p>
 </div></blockquote>
 </div>
+<div class="section" id="openjdk8escapleanalysis">
+<h3>OpenJDK8のEscapleAnalysis<a class="headerlink" href="#openjdk8escapleanalysis" title="Permalink to this headline">¶</a></h3>
+<p>OpenJDK8から、EscapeAnalysisが改良されており、</p>
+<p>C2レベルのオプションに OptimizePtrCompare オプションが追加。デフォルトtrue</p>
+<p>EscapeAnalysisにPtrCompareへの処理が大幅追加されており、nestしたlock/unlockの除去が可能に</p>
+<p>具体的には、従来のEscapeAnalysisでPtrCompare系のNodeを収集しておき、</p>
+<p>従来のEscapeAnalysis終了後、</p>
+<p>PtrCompareNodeの左辺もしくは右辺がNoEscapeである場合、</p>
+<p>Escaple解析の中間情報をPtrCompareの相方に伝搬させた上で、</p>
+<p>PtrCompareのNodeを簡略化させ、最終的にGVNをかけ直して最適化する。EscapeAnalysisなのに、、</p>
+<p>簡略化処理の大部分は、Node* ConnectionGraph::optimize_ptr_compare(Node* n)</p>
+<p>返り値のNodeがNullでなければ、簡略化を試行する。</p>
+<p>Op_CmpP || Op_CmpN &#8211;&gt; pcmp_neq(makecon(TypeInt::CC_GT)) || pcmp_eq(makecon(TypeInt::CC_EQ))</p>
+<p>CC_GTは TypeInt::ONE CC_EQはTypeInt::ZERO</p>
+<p>追加された処理は、grep OptimizePtrCompare で探すことができる。</p>
+<p>結果は, PrintOptimizePtrCompareで出力出きるはず。OpenJDK8ビルドできず確認できないけど。</p>
+<hr class="docutils" />
+</div>
 </div>
 </div>
 

@@ -1,0 +1,324 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>JVMのCPU依存部分について &mdash; OpenJDK Internals 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/print.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <script type="text/javascript" src="../static/underscore.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
+    <link rel="next" title="2011 1014 java one" href="javaone.html" />
+    <link rel="prev" title="OpenJDK opto macro" href="macro.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="../index.html">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>JVMのCPU依存部分について</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        «&#160;&#160;<a href="macro.html">OpenJDK opto macro</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="javaone.html">2011 1014 java one</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="jvmcpu">
+<h1>JVMのCPU依存部分について<a class="headerlink" href="#jvmcpu" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="macroassembler">
+<h2>MacroAssembler<a class="headerlink" href="#macroassembler" title="Permalink to this headline">¶</a></h2>
+<p>cpu依存部分には、MacroAssemblerで色々記述されている。</p>
+<p>assembler_x86.cpp</p>
+<p>UseCompressedOopsの処理も、大体ここに入っている。</p>
+<div class="section" id="string-indexof">
+<h3>string_indexof<a class="headerlink" href="#string-indexof" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div>int_cnt2は8より小さい。generalなアルゴリズムになっている。</div></blockquote>
+</div>
+<div class="section" id="string-indexofc8">
+<h3>string_indexofC8<a class="headerlink" href="#string-indexofc8" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>OpenJDK7から追加</p>
+<p>size &gt; 8 の前提条件下で動作する。条件が畳み込んであり高速</p>
+</div></blockquote>
+<p>概要</p>
+<div class="highlight-python"><pre>int string_indexofC8(short* str1, int str1_len, short* str2, int str2_len)
+
+string_indexofC8
+  str1
+  str2
+  cnt1
+  cnt2
+  int_cnt2 &lt;-- &gt;8
+  result
+
+  pcmpestri
+  input
+    xmm substring
+    rax substring length
+    mem scanned string
+    rdx string length
+    0xd  mode指定
+         1100 部分文字列比較
+           01 符号なしデータ short比較
+  output
+    rcx matched index in string</pre>
+</div>
+</div>
+<div class="section" id="string-compare">
+<h3>string_compare<a class="headerlink" href="#string-compare" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>if supports_cmov()</p>
+<dl class="docutils">
+<dt>if UseSSE42Intrinsics</dt>
+<dd>pcmpestri</dd>
+</dl>
+</div></blockquote>
+<p>概要</p>
+<div class="highlight-python"><pre>void
+string_compare(short* str1, short* str2,
+  int cnt1, int cnt2, int&amp; result, void* vec1) {
+}
+
+// pcmpestri
+//   inputs:
+//     vec1- substring
+//     rax - negative string length (elements count)
+//     mem - scaned string
+//     rdx - string length (elements count)
+//     pcmpmask - cmp mode: 11000 (string compare with negated result)
+//               + 00 (unsigned bytes) or  + 01 (unsigned shorts)
+//   outputs:
+//     rcx - first mismatched element index</pre>
+</div>
+<p>カーネルループ</p>
+<div class="highlight-python"><pre>COMPARE_WIDE_VECTORS:
+  movdqu vec1, (str1, result, scale)
+  pcmpestri vec1, (str2, result, scale), pcmpmask
+  jccb VECTOR_NOT_EQUAL // CF=(IntRes2!=0),  CF==1(IntRes2==0), goto VECTOR_NOT_EQ CF==0(IntRes2!=0) goto loop
+  addptr result, stride
+  subptr cnt2, stride
+  jccb COMPARE_WIDE_VECTORS</pre>
+</div>
+</div>
+<div class="section" id="char-array-equals">
+<h3>char_array_equals<a class="headerlink" href="#char-array-equals" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><dl class="docutils">
+<dt>if UseSSE42Intrinsics</dt>
+<dd>movdqu vec1
+movdqu vec2
+pxor vec1 vec2
+ptest vec1</dd>
+</dl>
+</div></blockquote>
+<p>概要</p>
+<div class="highlight-python"><pre>// Compare char[] arrays aligned to 4 bytes or substrings.
+void MacroAssembler::char_arrays_equals(bool is_array_equ, Register ary1, Register ary2,
+Register limit, Register result, Register chr,
+XMMRegister vec1, XMMRegister vec2) {
+
+// Compare 16-byte vectors
+andl(result, 0x0000000e);  //   tail count (in bytes)
+andl(limit, 0xfffffff0);   // vector count (in bytes)
+jccb(Assembler::zero, COMPARE_TAIL);
+
+lea(ary1, Address(ary1, limit, Address::times_1));
+lea(ary2, Address(ary2, limit, Address::times_1));
+negptr(limit);
+
+bind(COMPARE_WIDE_VECTORS);
+movdqu(vec1, Address(ary1, limit, Address::times_1));
+movdqu(vec2, Address(ary2, limit, Address::times_1));
+pxor(vec1, vec2);
+
+ptest(vec1, vec1);
+jccb(Assembler::notZero, FALSE_LABEL);
+addptr(limit, 16);
+jcc(Assembler::notZero, COMPARE_WIDE_VECTORS);
+
+testl(result, result);
+jccb(Assembler::zero, TRUE_LABEL);
+
+movdqu(vec1, Address(ary1, result, Address::times_1, -16));
+movdqu(vec2, Address(ary2, result, Address::times_1, -16));
+pxor(vec1, vec2);
+
+ptest(vec1, vec1);
+jccb(Assembler::notZero, FALSE_LABEL);
+jmpb(TRUE_LABEL);
+
+bind(COMPARE_TAIL); // limit is zero
+movl(limit, result);
+// Fallthru to tail compare</pre>
+</div>
+</div>
+<div class="section" id="generate-fill">
+<h3>generate_fill<a class="headerlink" href="#generate-fill" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div>配列のfillを高速に行うMacroなのかな。</div></blockquote>
+</div>
+<div class="section" id="biased-locking-enter">
+<h3>biased_locking_enter<a class="headerlink" href="#biased-locking-enter" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div>cmpxchg でロックフリーなアルゴリズムだったような。。</div></blockquote>
+</div>
+<div class="section" id="g1gc">
+<h3>g1gc<a class="headerlink" href="#g1gc" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="javaapimacro">
+<h3>JavaのAPIが内部でmacroに切り替わるタイミング<a class="headerlink" href="#javaapimacro" title="Permalink to this headline">¶</a></h3>
+<p>stack trace</p>
+<div class="highlight-python"><pre>#8  0x005a75fc in ParseGenerator::generate (this=0x8087e38, jvms=0x8083768)
+    at /home/elise/language/java/openjdk7/hotspot/src/share/vm/opto/callGenerator.cpp:87
+87    Parse parser(jvms, method(), _expected_uses);
+(gdb)
+#7  0x00a3b117 in Parse::Parse (this=0x7d31157c, caller=0x8083768, parse_method=0x81439b0, expected_uses=10000)
+    at /home/elise/language/java/openjdk7/hotspot/src/share/vm/opto/parse1.cpp:589
+589   do_all_blocks();
+(gdb)
+#6  0x00a3b5b1 in Parse::do_all_blocks (this=0x7d31157c)
+    at /home/elise/language/java/openjdk7/hotspot/src/share/vm/opto/parse1.cpp:680
+680       do_one_block();
+(gdb)
+#5  0x00a3e670 in Parse::do_one_block (this=0x7d31157c)
+    at /home/elise/language/java/openjdk7/hotspot/src/share/vm/opto/parse1.cpp:1405
+1405      do_one_bytecode();
+(gdb)
+#4  0x00a4c142 in Parse::do_one_bytecode() () at /home/elise/language/java/openjdk7/hotspot/src/share/vm/opto/parse2.cpp:2228
+2228      do_call();
+(gdb)
+#3  0x00723e1f in Parse::do_call (this=0x7d31157c) at /home/elise/language/java/openjdk7/hotspot/src/share/vm/opto/doCall.cpp:483
+483   if ((new_jvms = cg-&gt;generate(jvms)) == NULL) {
+(gdb)
+#2  0x00927009 in LibraryIntrinsic::generate (this=0x8087f98, jvms=0x817bed8)
+    at /home/elise/language/java/openjdk7/hotspot/src/share/vm/opto/library_call.cpp:405
+405   if (kit.try_to_inline()) {
+(gdb)
+#1  0x009275af in LibraryCallKit::try_to_inline (this=0x7d310d9c)
+    at /home/elise/language/java/openjdk7/hotspot/src/share/vm/opto/library_call.cpp:480
+480     return inline_string_compareTo();
+(gdb)
+#0  LibraryCallKit::inline_string_compareTo (this=0x7d310d9c)
+    at /home/elise/language/java/openjdk7/hotspot/src/share/vm/opto/library_call.cpp:912
+912   Node *receiver = pop();</pre>
+</div>
+<p>optoのvmIntrinsics Nodeに変換しているのは下記</p>
+<p>opto/LibraryCallKit::make_string_method_node</p>
+<p>ここでstring nodeに変換しているのだと思う</p>
+<p>source</p>
+<div class="highlight-python"><pre>switch (id) {
+  case vmIntrinsics::_compareTo:
+  if (!SpecialStringCompareTo)  return NULL;
+  break;
+case vmIntrinsics::_indexOf:
+  if (!SpecialStringIndexOf)  return NULL;
+  break;
+case vmIntrinsics::_equals:
+  if (!SpecialStringEquals)  return NULL;
+  break;
+case vmIntrinsics::_equalsC:
+  if (!SpecialArraysEquals)  return NUL</pre>
+</div>
+<p>VMのIntrinsics</p>
+<p>classfile/vmSymbols.cpp</p>
+<div class="highlight-python"><pre>// VM Intrinsic ID's uniquely identify some very special methods
+class vmIntrinsics: AllStatic {
+friend class vmSymbols;
+friend class ciObjectFactory;
+
+public:
+// Accessing
+enum ID {
+_none = 0,                      // not an intrinsic (default answer)
+
+#define VM_INTRINSIC_ENUM(id, klass, name, sig, flags)  id,
+VM_INTRINSICS_DO(VM_INTRINSIC_ENUM,
+VM_SYMBOL_IGNORE, VM_SYMBOL_IGNORE, VM_SYMBOL_IGNORE, VM_ALIAS_IGNORE)
+#undef VM_INTRINSIC_ENUM
+
+ID_LIMIT,
+LAST_COMPILER_INLINE = _prefetchWriteStatic,
+FIRST_ID = _none + 1
+};</pre>
+</div>
+<p>興味深いのは、</p>
+<p>cas命令</p>
+<p>unboxing boxing命令に関しても専用に宣言していた</p>
+<p>instruct partialSubtypeCheck(</p>
+</div>
+<div class="section" id="openjdk8">
+<h3>OpenJDK8から<a class="headerlink" href="#openjdk8" title="Permalink to this headline">¶</a></h3>
+<p>OpenJDK8からAVXをサポートし始めたが、</p>
+<p>AVXを使った特別なMacroは未定義</p>
+<p>fast_pow, fast_expが新規追加されている</p>
+<p>FPUユニットを使って高速にlogを計算して、powとexpを計算するぽい</p>
+<p>基本的には、fyl2xやfldl2eを使う。</p>
+</div>
+</div>
+</div>
+
+
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="macro.html">OpenJDK opto macro</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="javaone.html">2011 1014 java one</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+
+    <div class="footer">
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+
+<script type="text/javascript">
+
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-15223787-2']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+ var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+ var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+ })();
+
+</script>
+
+
+  </body>
+</html>

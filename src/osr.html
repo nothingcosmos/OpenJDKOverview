@@ -1,0 +1,239 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>On-Stack Replacement &mdash; OpenJDK Internals 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/print.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <script type="text/javascript" src="../static/underscore.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
+    <link rel="next" title="OpenJDK opto macro" href="macro.html" />
+    <link rel="prev" title="JVMソースコードリーディングの会 第5回" href="c2.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="../index.html">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>On-Stack Replacement</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        «&#160;&#160;<a href="c2.html">JVMソースコードリーディングの会　第5回</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="macro.html">OpenJDK opto macro</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="on-stack-replacement">
+<h1>On-Stack Replacement<a class="headerlink" href="#on-stack-replacement" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="osr">
+<h2>OSR<a class="headerlink" href="#osr" title="Permalink to this headline">¶</a></h2>
+<p>OSRは、ループ実行した際に、ループを内包したmethodをJITコンパイルして、実行途中からJITコンパイルしたコードに遷移する。</p>
+<p>OSRでJITコンパイルした場合、methodの入り口に、OSR用の退避コードが挿入される。</p>
+<p>OSRは、実現するだけであれば、非常に簡単であり、</p>
+<p>OSREntryのframe pointerとthisポインタの位置を保存しておくだけでよいはず。</p>
+<p>特定のレジスタに乗せておくというルール制御でも可能だろう。</p>
+<p>トレードオフとなるところは、上記重要なアドレス以外を</p>
+<p>いかに保存しておくかだと思う。OSRで切り替わるコードが遅くてもよいのであれば、</p>
+<p>チェックポイントにおいて、変数はレジスタに退避しておいてよいはず。</p>
+<p>でも性能を考えると、レジスタはフルに使いたい。この辺がトレードオフ。</p>
+<p>レジスタをフルに使いたいなら、OSRの入れ替え対象のレジスタの意味を</p>
+<p>フルで使いたいだけ覚えておき、退避する必要がある。</p>
+<p>おそらくだが、ループ中にOSRのEntryを決め打ちで１ヶ所だけ作成し、</p>
+<p>そのポイントでだけOSRを行うはず。</p>
+<p>OSRのEntryを作成する場所の詳細はまだ不明。</p>
+<p>たぶんループのheaderか、backedgeのどちらかのはず。</p>
+<p>osrでJITコンパイルされたコードは、もし後で何回も呼ばれるようであれば、</p>
+<p>再度JITコンパイルされる。再度JITコンパイルされた場合、OSR用のEntryは当然挿入されない。</p>
+<div class="section" id="id1">
+<h3>OSRの参考資料<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>詳細は&#8221;コンパイラとバーチャルマシン&#8221;っていう書籍が図入りで説明している</p>
+<p>comment</p>
+<div class="highlight-python"><pre>// This code is dependent on the memory layout of the interpreter local
+// array and the monitors. On all of our platforms the layout is identical
+// so this code is shared. If some platform lays the their arrays out
+// differently then this code could move to platform specific code or
+// the code here could be modified to copy items one at a time using
+// frame accessor methods and be platform independent.</pre>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>OSRの調査<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>frame fr = thread-&gt;last_frame()</p>
+<p>NEW_C_HEAP_ARRAY()</p>
+<p>Copy::disjoint_words()</p>
+</div></blockquote>
+<div class="section" id="id3">
+<h4>OSRの入り口<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<blockquote>
+<div>OnStackReplacementは、runtime/sharedRuntime.cpp::SharedRuntime::OSR_migration_begin()</div></blockquote>
+</div>
+<div class="section" id="id4">
+<h4>OSRの出口<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<p>OSR付きでJITコンパイルされたメソッドの入り口に、migration_end()を呼び出す</p>
+<p>OSR_migration_end</p>
+<div class="highlight-python"><pre>008   B1: #     B14 B2 &lt;- BLOCK HEAD IS JUNK   Freq: 1
+008     # stack bang
+        PUSHL  EBP
+        SUB    ESP,40   # Create frame
+016     MOV    ESI,ECX
+018     MOV    EBP,[ECX]        # int
+01a     MOV    EBX,[ECX + #4]
+01d     MOV    EAX.lo,[ESI + #8]        # long
+        MOV    EAX.hi,[ESI + #8]+4
+023     MOV    [ESP + #8],EAX
+        MOV    [ESP + #12],EDX
+02b     MOV    [ESP + #0],ECX
+02e     CALL_LEAF,runtime  OSR_migration_end
+        No JVM State Info</pre>
+</div>
+<p>On-Stack Replacementを呼び出す前のインタプリタのコード</p>
+<div class="highlight-python"><pre>#define DO_BACKEDGE_CHECKS(skip, branch_pc)                                                         \
+if ((skip) &lt;= 0) {                                                                              \
+if (UseLoopCounter) {                                                                         \
+  bool do_OSR = UseOnStackReplacement;                                                        \
+  BACKEDGE_COUNT-&gt;increment();                                                                \
+  if (do_OSR) do_OSR = BACKEDGE_COUNT-&gt;reached_InvocationLimit();                             \
+  if (do_OSR) {                                                                               \
+    nmethod*  osr_nmethod;                                                                    \
+    OSR_REQUEST(osr_nmethod, branch_pc);                                                      \
+    if (osr_nmethod != NULL &amp;&amp; osr_nmethod-&gt;osr_entry_bci() != InvalidOSREntryBci) {          \
+      intptr_t* buf = SharedRuntime::OSR_migration_begin(THREAD);                             \
+      istate-&gt;set_msg(do_osr);                                                                \
+      istate-&gt;set_osr_buf((address)buf);                                                      \
+      istate-&gt;set_osr_entry(osr_nmethod-&gt;osr_entry());                                        \
+      return;                                                                                 \
+    }                                                                                         \
+  }                                                                                           \
+}  /* UseCompiler ... */                                                                      \
+INCR_INVOCATION_COUNT;                                                                        \
+SAFEPOINT;                                                                                    \
+}</pre>
+</div>
+<p>インタプリタのローカル領域を対比する。:</p>
+<div class="highlight-python"><pre>// Allocate temp buffer, 1 word per local &amp; 2 per active monitor
+int buf_size_words = max_locals + active_monitor_count*2;
+intptr_t *buf = NEW_C_HEAP_ARRAY(intptr_t,buf_size_words);
+
+// Copy the locals.  Order is preserved so that loading of longs works.
+// Since there's no GC I can copy the oops blindly.
+assert( sizeof(HeapWord)==sizeof(intptr_t), "fix this code");
+Copy::disjoint_words((HeapWord*)fr.interpreter_frame_local_at(max_locals-1),
+  (HeapWord*)&amp;buf[0],
+  max_locals);</pre>
+</div>
+</div>
+</div>
+<div class="section" id="c1osr">
+<h3>c1のOSR<a class="headerlink" href="#c1osr" title="Permalink to this headline">¶</a></h3>
+<p>memo</p>
+<div class="highlight-python"><pre>c1 LIR Assembler
+void LIR_Assembler::osr_entry() {
+
+offsets()-&gt;set_value(CodeOffsets::OSR_Entry, code_offset());
+BlockBegin* osr_entry = compilation()-&gt;hir()-&gt;osr_entry();
+ValueStack* entry_state = osr_entry-&gt;state();
+int number_of_locks = entry_state-&gt;locks_size();
+
+// we jump here if osr happens with the interpreter
+// state set up to continue at the beginning of the
+// loop that triggered osr - in particular, we have
+// the following registers setup:
+//
+// rcx: osr buffer
+//
+
+// build frame
+ciMethod* m = compilation()-&gt;method();
+__ build_frame(initial_frame_size_in_bytes());</pre>
+</div>
+<p>comment</p>
+<div class="highlight-python"><pre>// OSR buffer is
+//
+// locals[nlocals-1..0]
+// monitors[0..number_of_locks]
+//
+// locals is a direct copy of the interpreter frame so in the osr buffer
+// so first slot in the local array is the last local from the interpreter
+// and last slot is local[0] (receiver) from the interpreter
+//
+// Similarly with locks. The first lock slot in the osr buffer is the nth lock
+// from the interpreter frame, the nth lock slot in the osr buffer is 0th lock
+// in the interpreter frame (the method lock if a sync method)
+
+// Initialize monitors in the compiled activation.
+//   rcx: pointer to osr buffer
+//
+// All other registers are dead at this point and the locals will be
+// copied into place by code emitted in the IR.</pre>
+</div>
+<p>rcxのpointer to osr buffer以外の 全レジスタはdeadですと仮定すると。</p>
+<p>でもそれってOSR対応メソッドのレジスタ割り付けはあほだってことですか。</p>
+</div>
+</div>
+</div>
+
+
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="c2.html">JVMソースコードリーディングの会　第5回</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="macro.html">OpenJDK opto macro</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+
+    <div class="footer">
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+
+<script type="text/javascript">
+
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-15223787-2']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+ var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+ var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+ })();
+
+</script>
+
+
+  </body>
+</html>

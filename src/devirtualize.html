@@ -250,6 +250,14 @@ bool methodOopDesc::can_be_statically_bound() const {
 </div>
 <p>どうやら、entry_pointや、deoptimize時のguard文も随所に挿入</p>
 </div>
+<div class="section" id="c2devirtualization">
+<h2>C2のDevirtualization<a class="headerlink" href="#c2devirtualization" title="Permalink to this headline">¶</a></h2>
+<p>C2は、Guarded Devirtualizationを行う。</p>
+<p>基本的に、プロファイル結果のみ参照して、Porymorphic callの種類をカウントする。</p>
+<p>receiver==1 mono-morhpic call
+receiver==2 bi-morphic call
+receiver&gt;=3 mega-morphic call</p>
+</div>
 </div>
 
 

@@ -1,0 +1,132 @@
+JVMソースコードリーディングの会　第5回
+################################################################################
+
+C2 compiler ytoshima
+================================================================================
+
+Node
+
+MachNode
+
+Type
+
+ciOb
+
+         def-num  use-num
+root ===  1 3 4   {{ 0 }}
+
+param 10 this pointer
+
+しょっぱなから、メモリの命令に分解している
+this命令があるので。
+
+隠れparam control, io memory this,,,
+
+CPUにJava専用命令を実装して、PauselessGC
+Azureの主張 <-- C2コンパイラをメインで開発していた人が、2005年くらいにAzureに移籍
+
+Compiler data structures
+--------------------------------------------------------------------------------
+
+CFGは、適度に壊して直して繰り返し
+
+CFGは、上記保持しない
+
+Nodeクラス
+
+初期のメソッド
+
+多くのサブクラスが目的に応じて違ったことをあげる
+
+  Ideal(bool can_reshape)  <-- 正規化
+
+  Value()  <-- 値の型を具体的に
+
+  Identity() <--
+
+
+sample
+
+  in1 <-- user operand
+
+  in2 <-- user operand
+
+Type
+  object bottom // scalaっぽい
+
+
+
+Phase Class
+
+SafePointNode
+
+
+ProjNode <-- 値を絞り込むノード
+
+paramnode
+
+mergemem
+
+JVMState <-- safepointと1たい１
+
+
+PhaseCFG CFGは作るもの
+
+Matcher <-- hi --> lowへの変換
+
+
+Areana <-- メモリのここから取ってね。
+
+RootNode _root
+Node _top <-- 意味のないノード
+
+PhaseValues 値をテーブルで管理する
+
+
+
+GraphKitが便利かもしれない。
+
+
+メモリ管理はJVM独自管理
+areana メモリの管理
+リソースエリア
+
+
+hashCode()
+
+
+newの処理
+fast pathの場合は、5命令程度
+slow pathの場合は、最悪GC発生
+
+
+Optimize
+--------------------------------------------------------------------------------
+
+IGVN
+
+can_reshapeがtrueの場合、グラフの構造まで変えちゃう
+
+EscapeAnalysis
+
+
+is_counted_loop --> loop用の構造の作成
+
+countedloopendっていうNodeに変換
+
+CodeGen
+--------------------------------------------------------------------------------
+
+一つのメソッド単位
+inlineもたくさんされてるかも
+
+縦 areana
+
+
+Nodeは最大で65000
+
+Node数に比例してメモリ使用量は増える見込み
+
+google groupに情報乗っけると充実していくかもしれないね。
+
+

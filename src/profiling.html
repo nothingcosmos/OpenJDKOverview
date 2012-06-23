@@ -28,7 +28,7 @@
     <script type="text/javascript" src="../static/doctools.js"></script>
     <script type="text/javascript" src="../_static/theme_extras.js"></script>
     <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
-    <link rel="next" title="sample code factIf" href="factIf.html" />
+    <link rel="next" title="JVMソースコードリーディングの会 第5回" href="c2.html" />
     <link rel="prev" title="BytecodeEscapeAnalysis" href="escape.html" /> 
   </head>
   <body>
@@ -43,7 +43,7 @@
         &#160;&#160;::&#160;&#160;
         <a class="uplink" href="../index.html">Contents</a>
         &#160;&#160;::&#160;&#160;
-        <a href="factIf.html">sample code factIf</a>&#160;&#160;»
+        <a href="c2.html">JVMソースコードリーディングの会　第5回</a>&#160;&#160;»
         </p>
 
       </div>
@@ -89,6 +89,57 @@
 <p>&#8211;&gt; ヤバい関数は最適化しませんし、インタプリタに戻します。</p>
 </div>
 </div>
+<div class="section" id="id7">
+<h2>プロファイルを制御するオプション類<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
+<p>runtime/global.hpp</p>
+<p>UseTypeProfile=true</p>
+<p>TypeProfileMajorReceiverPercent=90</p>
+<p>TypeProfileCasts=true</p>
+<p>ProfileDynamicTypes=true</p>
+<p>ProfileTraps=true</p>
+<p>ProfileMaturityPercentage=20</p>
+<dl class="docutils">
+<dt>TypeProfileWidth=2</dt>
+<dd>number of receiver types to record in call/cast profile</dd>
+<dt>BciProfileWidth=2</dt>
+<dd>number of return bci&#8217;s to record in ret profile</dd>
+</dl>
+<p>ProfilerNodeSize=1024</p>
+</div>
+<div class="section" id="typeprofile">
+<h2>TypeProfile<a class="headerlink" href="#typeprofile" title="Permalink to this headline">¶</a></h2>
+<p>TypeProfileでおもしろい処理ないかな。Generics関連の高速化とかあるんだっけ？</p>
+<p>grep</p>
+<div class="highlight-python"><pre>elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep UseTypeProfile */*
+opto/doCall.cpp:  if (call_is_virtual &amp;&amp; UseTypeProfile &amp;&amp; profile.has_receiver(0)) {
+opto/graphKit.cpp:  if (!UseTypeProfile || !TypeProfileCasts) return NULL;
+runtime/globals.hpp:define_pd_global(bool, UseTypeProfile,               false);
+runtime/globals.hpp:  product(bool, UseTypeProfile, true,                                       \
+
+elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep TypeProfileCasts */*
+ci/ciMethod.cpp:// Also reports receiver types for non-call type checks (if TypeProfileCasts).
+oops/methodDataOop.cpp:    if (TypeProfileCasts) {
+oops/methodDataOop.cpp:    if (TypeProfileCasts) {
+opto/graphKit.cpp:  if (!UseTypeProfile || !TypeProfileCasts) return NULL;
+runtime/globals.hpp:  develop(bool, TypeProfileCasts,  true,                                    \
+
+elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep ProfileDynamicTypes */*
+opto/graphKit.cpp:  bool never_see_null = (ProfileDynamicTypes  // aggressive use of profile
+opto/graphKit.cpp:  if (ProfileDynamicTypes &amp;&amp; data != NULL) {
+opto/parse2.cpp:      if (ProfileDynamicTypes)
+runtime/globals.hpp:  diagnostic(bool, ProfileDynamicTypes, true,                               \</pre>
+</div>
+<p>ProfileDynamicTypes</p>
+<div class="highlight-python"><pre>graphKit::gen_instanceof
+
+  ProfileDynamicTypes seems_never_null()
+
+  null_check_oop()
+    uncommon_trapを挿入して
+
+  maybe_cast_profiled_receiver()</pre>
+</div>
+</div>
 </div>
 
 
@@ -100,7 +151,7 @@
         &#160;&#160;::&#160;&#160;
         <a class="uplink" href="../index.html">Contents</a>
         &#160;&#160;::&#160;&#160;
-        <a href="factIf.html">sample code factIf</a>&#160;&#160;»
+        <a href="c2.html">JVMソースコードリーディングの会　第5回</a>&#160;&#160;»
         </p>
 
       </div>
