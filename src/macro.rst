@@ -91,26 +91,3 @@ MemBarReleaseLockNode
 MemBarAcquireLockNode
 
 
-サブセクション
--------------------------------------------------------------------------------
-
-.. image:: xxx.png
-
-.. literalinclude:: xxx.js
-
-.. graphviz::
-
-
-xxx ::
-
-  xxx
-
-.. code-block:: python
-    :linenos:
-
-.. literalinclude:: src/test.py
-
-  :language: python
-  :linenos:
-
-
