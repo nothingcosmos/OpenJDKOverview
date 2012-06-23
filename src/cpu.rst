@@ -194,6 +194,64 @@ stack trace ::
   912   Node *receiver = pop();
   
 
+optoのvmIntrinsics Nodeに変換しているのは下記
+
+opto/LibraryCallKit::make_string_method_node
+
+ここでstring nodeに変換しているのだと思う
+
+source ::
+  
+  switch (id) {
+    case vmIntrinsics::_compareTo:
+    if (!SpecialStringCompareTo)  return NULL;
+    break;
+  case vmIntrinsics::_indexOf:
+    if (!SpecialStringIndexOf)  return NULL;
+    break;
+  case vmIntrinsics::_equals:
+    if (!SpecialStringEquals)  return NULL;
+    break;
+  case vmIntrinsics::_equalsC:
+    if (!SpecialArraysEquals)  return NUL
+
+
+
+VMのIntrinsics
+
+classfile/vmSymbols.cpp ::
+
+  // VM Intrinsic ID's uniquely identify some very special methods
+  class vmIntrinsics: AllStatic {
+  friend class vmSymbols;
+  friend class ciObjectFactory;
+  
+  public:
+  // Accessing
+  enum ID {    
+  _none = 0,                      // not an intrinsic (default answer)
+  
+  #define VM_INTRINSIC_ENUM(id, klass, name, sig, flags)  id,
+  VM_INTRINSICS_DO(VM_INTRINSIC_ENUM,
+  VM_SYMBOL_IGNORE, VM_SYMBOL_IGNORE, VM_SYMBOL_IGNORE, VM_ALIAS_IGNORE)
+  #undef VM_INTRINSIC_ENUM
+  
+  ID_LIMIT,
+  LAST_COMPILER_INLINE = _prefetchWriteStatic,
+  FIRST_ID = _none + 1     
+  };
+  
+
+興味深いのは、
+
+cas命令
+
+unboxing boxing命令に関しても専用に宣言していた
+
+instruct partialSubtypeCheck(
+
+
+
 
 
 OpenJDK8から
