@@ -50,9 +50,8 @@ Trapの統計
 
 
 
-===============================================================================
--------------------------------------------------------------------------------
 プロファイルを制御するオプション類
+===============================================================================
 
 runtime/global.hpp
 
@@ -78,23 +77,27 @@ BciProfileWidth=2
 ProfilerNodeSize=1024
 
 
+TypeProfile
 ===============================================================================
 
--------------------------------------------------------------------------------
-elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep UseTypeProfile */*
+TypeProfileでおもしろい処理ないかな。Generics関連の高速化とかあるんだっけ？
+
+grep ::
+
+  elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep UseTypeProfile */*
   opto/doCall.cpp:  if (call_is_virtual && UseTypeProfile && profile.has_receiver(0)) {
   opto/graphKit.cpp:  if (!UseTypeProfile || !TypeProfileCasts) return NULL;
   runtime/globals.hpp:define_pd_global(bool, UseTypeProfile,               false);
   runtime/globals.hpp:  product(bool, UseTypeProfile, true,                                       \
 
-elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep TypeProfileCasts */*
+  elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep TypeProfileCasts */*
   ci/ciMethod.cpp:// Also reports receiver types for non-call type checks (if TypeProfileCasts).
   oops/methodDataOop.cpp:    if (TypeProfileCasts) {
   oops/methodDataOop.cpp:    if (TypeProfileCasts) {
   opto/graphKit.cpp:  if (!UseTypeProfile || !TypeProfileCasts) return NULL;
   runtime/globals.hpp:  develop(bool, TypeProfileCasts,  true,                                    \
 
-elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep ProfileDynamicTypes */*
+  elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep ProfileDynamicTypes */*
   opto/graphKit.cpp:  bool never_see_null = (ProfileDynamicTypes  // aggressive use of profile
   opto/graphKit.cpp:  if (ProfileDynamicTypes && data != NULL) {
   opto/parse2.cpp:      if (ProfileDynamicTypes)
@@ -103,17 +106,14 @@ elise@elise-desktop:~/language/java/openjdk6/hotspot/src/share/vm$ grep ProfileD
 
 
 
-ProfileDynamicTypes
+ProfileDynamicTypes ::
 
+  graphKit::gen_instanceof
 
-graphKit::gen_instanceof
+    ProfileDynamicTypes seems_never_null()
 
-  ProfileDynamicTypes seems_never_null()
+    null_check_oop()
+      uncommon_trapを挿入して
 
-  null_check_oop()
-    uncommon_trapを挿入して
-
-  maybe_cast_profiled_receiver()
-
-
+    maybe_cast_profiled_receiver()
 
