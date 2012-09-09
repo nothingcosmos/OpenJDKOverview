@@ -1,0 +1,128 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>JVMCodeReading &mdash; OpenJDK Internals 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/print.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <script type="text/javascript" src="../static/underscore.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="../index.html">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>JVMCodeReading</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        <a class="uplink" href="../index.html">Contents</a>
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="jvmcodereading">
+<h1>JVMCodeReading<a class="headerlink" href="#jvmcodereading" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="nminoru-jp">
+<h2>nminoru_jp<a class="headerlink" href="#nminoru-jp" title="Permalink to this headline">¶</a></h2>
+<hr class="docutils" />
+<p>inflation
+deflation</p>
+<p>revocation</p>
+<hr class="docutils" />
+<p>assert(!mark-&gt;has_bias_pattern(), &#8220;should not see bias pattern here&#8221;);</p>
+<p>if (mark-&gt;is_neutral()) {
+// Anticipate successful CAS &#8211; the ST of the displaced mark must
+// be visible &lt;= the ST performed by the CAS.
+lock-&gt;set_displaced_header(mark);
+if (mark == (markOop) Atomic::cmpxchg_ptr(lock, obj()-&gt;mark_addr(), mark)) {
+TEVENT (slow_enter: release stacklock) ;
+return ;
+}
+// Fall through to inflate() ...
+} else
+if (mark-&gt;has_locker() &amp;&amp; THREAD-&gt;is_lock_owned((address)mark-&gt;locker())) {
+assert(lock != mark-&gt;locker(), &#8220;must not re-lock the same lock&#8221;);
+assert(lock != (BasicLock*)obj-&gt;mark(), &#8220;don&#8217;t relock with same BasicLock&#8221;);
+lock-&gt;set_displaced_header(NULL);
+return;
+}</p>
+<p>ObjectMonitor * ATTR ObjectSynchronizer::inflate (Thread * Self, oop object) {</p>
+<div class="section" id="biased-locking">
+<h3>Biased Locking<a class="headerlink" href="#biased-locking" title="Permalink to this headline">¶</a></h3>
+<p>biased モードには戻らない。
+冗長な2度目のcasは使用しない。</p>
+<p>pen4だと、100cycleくらいだけど、 (net burst)
+現代のcasは10cycleくらいなんじゃないの</p>
+<p>cas キャッシュラインに対して発行するため、</p>
+<p>バスロックがなくなるのがうれしいのか</p>
+<p>specjbbは、synchronizedが多い</p>
+<hr class="docutils" />
+<img alt="src/xxx.png" src="src/xxx.png" />
+<p>xxx</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">xxx</span>
+</pre></div>
+</div>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre>
+</pre></div>
+</td></tr></table></div>
+</div>
+</div>
+</div>
+
+
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        <a class="uplink" href="../index.html">Contents</a>
+        </p>
+
+      </div>
+
+
+    <div class="footer">
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+
+<script type="text/javascript">
+
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-15223787-2']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+ var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+ var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+ })();
+
+</script>
+
+
+  </body>
+</html>

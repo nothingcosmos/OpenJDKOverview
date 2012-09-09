@@ -52,10 +52,9 @@
         
   <div class="section" id="todo">
 <h1>todo<a class="headerlink" href="#todo" title="Permalink to this headline">¶</a></h1>
-<p>今後の予定</p>
-<div class="section" id="c2-opto">
-<h2>C2(opto)<a class="headerlink" href="#c2-opto" title="Permalink to this headline">¶</a></h2>
-<p>ytoshimaさんの資料を自分なりにまとめてみたい。</p>
+<div class="section" id="on-stack-replacement-and-deoptimization">
+<h2>On-Stack Replacement and Deoptimization<a class="headerlink" href="#on-stack-replacement-and-deoptimization" title="Permalink to this headline">¶</a></h2>
+<p>の詳細をもうちょっと追ってみたい</p>
 </div>
 <div class="section" id="superword">
 <h2>superword<a class="headerlink" href="#superword" title="Permalink to this headline">¶</a></h2>
@@ -86,6 +85,10 @@
 <p>sharkは、BytecodeをLLVM IRへ変換したのち、LLVMを使用してJITコンパイルするモジュール</p>
 <p>inline展開およびdevirtualizationは、sharkモジュール中で行う。</p>
 <p>必要なstabの挿入は、LLVM IRへの変換の際に行う。</p>
+<p>Sharkには、On-Stack ReplacementとDirect Devirtualizationを実装している。</p>
+<p>でも、GCのSafepointで問題が発生しているとか。</p>
+<p>あと、Deoptimizationで問題発生していないだろうか。</p>
+<hr class="docutils" />
 </div>
 </div>
 

@@ -1,0 +1,211 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Shark &mdash; OpenJDK Internals 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
+    <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/print.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../static/jquery.js"></script>
+    <script type="text/javascript" src="../static/underscore.js"></script>
+    <script type="text/javascript" src="../static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/theme_extras.js"></script>
+    <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
+    <link rel="next" title="参考文献" href="reference.html" />
+    <link rel="prev" title="intrinsics" href="intrinsics.html" /> 
+  </head>
+  <body>
+      <div class="header"><h1 class="heading"><a href="../index.html">
+          <span>OpenJDK Internals 1.0 documentation</span></a></h1>
+        <h2 class="heading"><span>Shark</span></h2>
+      </div>
+      <div class="topnav">
+      
+        <p>
+        «&#160;&#160;<a href="intrinsics.html">intrinsics</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="reference.html">参考文献</a>&#160;&#160;»
+        </p>
+
+      </div>
+      <div class="content">
+        
+        
+  <div class="section" id="shark">
+<h1>Shark<a class="headerlink" href="#shark" title="Permalink to this headline">¶</a></h1>
+<p>Sharkは、OpenJDKの第3のJITコンパイラです。</p>
+<p>Sharkは、LLVMを利用して、LLVMがサポートする各種プラットフォーム向けのAsmを生成します。</p>
+<p>役割分担としては、JITコンパイラに必要なRuntime向けのIFの提供をSharkが行い、
+コンパイラとしてのコード生成をLLVM側が担当します。</p>
+<div class="section" id="id1">
+<h2>Sharkの概要<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>Sharkは、JavaのbytecodeをLLVMIRに変換し、LLVMIRのコンパイルをLLVMに依頼し、Asmを取得します。</p>
+<p>Shark全体で12k lineです。</p>
+<p>Sharkの問題点</p>
+<p>HotSpotcompilerはGCにoopはこのレジスタにあるよという指示を出せるが、</p>
+<p>これはLLVMでは出来ない為、一旦メモリに落とす。これに関連する処理のオーバーヘッドが大きいとかなんとか。</p>
+</div>
+<div class="section" id="ghc-llvmbackend">
+<h2>GHC LLVMBackend<a class="headerlink" href="#ghc-llvmbackend" title="Permalink to this headline">¶</a></h2>
+<p>GHCは、GHC内部の低レベル中間表現であるC&#8211;から、LLRMIRへ変換し、Asmを生成します。</p>
+<p>GHCのLLVMIR向けCodegenは、2.2k程度のHaskellでかかれているとか。</p>
+<p>内包は、cmmから、llファイルへのpretty printするのみ。</p>
+<p>GHCのCommon CodeGen自体が11kと比較すると、非常にコンパクトです。</p>
+<div class="section" id="id2">
+<h3>ソースコード<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>code</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">llvmHeaders</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">llvmValue</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkBlock</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkBlock</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkBuilder</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkBuilder</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkCacheDecache</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkCacheDecache</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkCodeBuffer</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkCompiler</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkCompiler</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkConstant</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkConstant</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkContext</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkContext</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkEntry</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkFunction</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkFunction</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkInliner</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkInliner</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkIntrinsics</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkIntrinsics</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkInvariants</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkInvariants</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkMemoryManager</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkMemoryManager</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkNativeWrapper</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkNativeWrapper</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkRuntime</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkRuntime</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkStack</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkStack</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkState</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkState</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkStateScanner</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkStateScanner</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkTopLevelBlock</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkTopLevelBlock</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkType</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">sharkValue</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">sharkValue</span><span class="o">.</span><span class="n">hpp</span>
+<span class="n">shark_globals</span><span class="o">.</span><span class="n">cpp</span>
+<span class="n">shark_globals</span><span class="o">.</span><span class="n">hpp</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="id3">
+<h2>Sharkの処理概要<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="compile-method">
+<h3>compile_method<a class="headerlink" href="#compile-method" title="Permalink to this headline">¶</a></h3>
+<p>code</p>
+<div class="highlight-python"><pre>void SharkCompiler::compile_method(ciEnv*    env, ciMethod* target, int       entry_bci);
+
+
+typeflow analysis
+
+  get_flow_analysis()
+  get_osr_flow_analysis()
+
+  SharkFunctin::build()
+    SharkFunction()
+      initialize()
+
+    //SharkTargetInvariants()
+
+  generate_native_code()</pre>
+</div>
+</div>
+<div class="section" id="sharkfunction-initialize-name">
+<h3>SharkFunction::initialize(name)<a class="headerlink" href="#sharkfunction-initialize-name" title="Permalink to this headline">¶</a></h3>
+<p>code</p>
+<div class="highlight-python"><pre>Function::arg_iterator Argument(method, osr_buf, base_pc, thread)
+
+new SharkTopLevelBlock()
+start_block-&gt;enter()
+
+
+block(i)-&gt;initialize()
+
+if (is_osr()) {
+  entry_state = new SharkOSREntryState()
+  builder()-&gt;CreateCall()
+
+typeFlow</pre>
+</div>
+</div>
+<div class="section" id="generate-native-code">
+<h3>generate_native_code()<a class="headerlink" href="#generate-native-code" title="Permalink to this headline">¶</a></h3>
+<hr class="docutils" />
+<hr class="docutils" />
+<img alt="src/xxx.png" src="src/xxx.png" />
+<div class="highlight-python"><div class="highlight"><pre>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+      </div>
+      <div class="bottomnav">
+      
+        <p>
+        «&#160;&#160;<a href="intrinsics.html">intrinsics</a>
+        &#160;&#160;::&#160;&#160;
+        <a class="uplink" href="../index.html">Contents</a>
+        &#160;&#160;::&#160;&#160;
+        <a href="reference.html">参考文献</a>&#160;&#160;»
+        </p>
+
+      </div>
+
+
+    <div class="footer">
+        &copy; Copyright 2011, nothingcosmos.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.
+    </div>
+
+<script type="text/javascript">
+
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-15223787-2']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+ var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+ var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+ })();
+
+</script>
+
+
+  </body>
+</html>

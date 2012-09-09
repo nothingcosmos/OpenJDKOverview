@@ -49,7 +49,22 @@
         
   <div class="section" id="welcome-to-openjdk-internals-s-documentation">
 <h1>Welcome to OpenJDK Internals&#8217;s documentation!<a class="headerlink" href="#welcome-to-openjdk-internals-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Contents:</p>
+</div>
+<div class="section" id="x86">
+<h1>第4回 x86最適化勉強会<a class="headerlink" href="#x86" title="Permalink to this headline">¶</a></h1>
+<p>Hotspotのことで発表させて頂きました。</p>
+<p>スライドはslideshareにあげています。</p>
+<p><a class="reference external" href="http://www.slideshare.net/nothingcosmos/x86hotspotjit">http://www.slideshare.net/nothingcosmos/x86hotspotjit</a></p>
+</div>
+<div class="section" id="jvm">
+<h1>JVMの関連資料<a class="headerlink" href="#jvm" title="Permalink to this headline">¶</a></h1>
+<p>以下のLLVM Wikiで、関連資料のURLをまとめています。</p>
+<p><a class="reference external" href="http://nothingcosmos.wiki.fc2.com/wiki/OpenJDK">http://nothingcosmos.wiki.fc2.com/wiki/OpenJDK</a></p>
+</div>
+<div class="section" id="contents">
+<h1>Contents:<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h1>
+<p>第4回JVMソースコードリーディングの会にて、</p>
+<p>担当して発表したC1コンパイラをベースを色々と追記しています。</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="src/overview.html"><em>OpenJDK HotSpot Client Compiler Overview</em></a><ul>
@@ -112,7 +127,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="src/c2.html">JVMソースコードリーディングの会　第5回</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="src/c2.html#c2-compiler-ytoshima">C2 compiler ytoshima</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/c2.html#c2-compiler-ytoshima-memo">C2 compiler ytoshima memo</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="src/osr.html">On-Stack Replacement</a><ul>
@@ -135,9 +150,20 @@
 <li class="toctree-l2"><a class="reference internal" href="src/javaone.html#native-ntt-oss">native NTT OSSセンタ</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="src/intrinsics.html">intrinsics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/intrinsics.html#c2intrinsics">C2のintrinsics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/intrinsics.html#arraycopy">arrayCopy</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="src/shark.html">Shark</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="src/shark.html#id1">Sharkの概要</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/shark.html#ghc-llvmbackend">GHC LLVMBackend</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/shark.html#id3">Sharkの処理概要</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="src/reference.html">参考文献</a></li>
 <li class="toctree-l1"><a class="reference internal" href="src/todo.html">todo</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="src/todo.html#c2-opto">C2(opto)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src/todo.html#on-stack-replacement-and-deoptimization">On-Stack Replacement and Deoptimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="src/todo.html#superword">superword</a></li>
 <li class="toctree-l2"><a class="reference internal" href="src/todo.html#shark">Shark</a></li>
 </ul>

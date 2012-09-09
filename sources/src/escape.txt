@@ -102,5 +102,38 @@ EscapeAnalysisの活用方法は、2つある。
   オプションで様子を眺める場合、PrintEliminateAllocationsで可能なはず
 
 
+OpenJDK8のEscapleAnalysis
 ===============================================================================
-===============================================================================
+
+OpenJDK8から、EscapeAnalysisが改良されており、
+
+C2レベルのオプションに OptimizePtrCompare オプションが追加。デフォルトtrue
+
+EscapeAnalysisにPtrCompareへの処理が大幅追加されており、nestしたlock/unlockの除去が可能に
+
+具体的には、従来のEscapeAnalysisでPtrCompare系のNodeを収集しておき、
+
+従来のEscapeAnalysis終了後、
+
+PtrCompareNodeの左辺もしくは右辺がNoEscapeである場合、
+
+Escaple解析の中間情報をPtrCompareの相方に伝搬させた上で、
+
+PtrCompareのNodeを簡略化させ、最終的にGVNをかけ直して最適化する。EscapeAnalysisなのに、、
+
+簡略化処理の大部分は、Node* ConnectionGraph::optimize_ptr_compare(Node* n)
+
+返り値のNodeがNullでなければ、簡略化を試行する。
+
+Op_CmpP || Op_CmpN --> pcmp_neq(makecon(TypeInt::CC_GT)) || pcmp_eq(makecon(TypeInt::CC_EQ))
+
+CC_GTは TypeInt::ONE CC_EQはTypeInt::ZERO
+
+
+追加された処理は、grep OptimizePtrCompare で探すことができる。
+
+結果は, PrintOptimizePtrCompareで出力出きるはず。OpenJDK8ビルドできず確認できないけど。
+
+
+
+

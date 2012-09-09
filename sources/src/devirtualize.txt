@@ -231,3 +231,16 @@ code ::
 
 どうやら、entry_pointや、deoptimize時のguard文も随所に挿入
 
+
+C2のDevirtualization
+===============================================================================
+
+C2は、Guarded Devirtualizationを行う。
+
+基本的に、プロファイル結果のみ参照して、Porymorphic callの種類をカウントする。
+
+receiver==1 mono-morhpic call
+receiver==2 bi-morphic call
+receiver>=3 mega-morphic call
+
+

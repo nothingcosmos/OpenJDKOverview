@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>参考文献 &mdash; OpenJDK Internals 1.0 documentation</title>
+    <title>intrinsics &mdash; OpenJDK Internals 1.0 documentation</title>
     
     <link rel="stylesheet" href="../static/haiku.css" type="text/css" />
     <link rel="stylesheet" href="../static/pygments.css" type="text/css" />
@@ -28,67 +28,43 @@
     <script type="text/javascript" src="../static/doctools.js"></script>
     <script type="text/javascript" src="../_static/theme_extras.js"></script>
     <link rel="top" title="OpenJDK Internals 1.0 documentation" href="../index.html" />
-    <link rel="next" title="todo" href="todo.html" />
-    <link rel="prev" title="Shark" href="shark.html" /> 
+    <link rel="next" title="Shark" href="shark.html" />
+    <link rel="prev" title="2011 1014 java one" href="javaone.html" /> 
   </head>
   <body>
       <div class="header"><h1 class="heading"><a href="../index.html">
           <span>OpenJDK Internals 1.0 documentation</span></a></h1>
-        <h2 class="heading"><span>参考文献</span></h2>
+        <h2 class="heading"><span>intrinsics</span></h2>
       </div>
       <div class="topnav">
       
         <p>
-        «&#160;&#160;<a href="shark.html">Shark</a>
+        «&#160;&#160;<a href="javaone.html">2011 1014 java one</a>
         &#160;&#160;::&#160;&#160;
         <a class="uplink" href="../index.html">Contents</a>
         &#160;&#160;::&#160;&#160;
-        <a href="todo.html">todo</a>&#160;&#160;»
+        <a href="shark.html">Shark</a>&#160;&#160;»
         </p>
 
       </div>
       <div class="content">
         
         
-  <div class="section" id="id1">
-<h1>参考文献<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
-<p>SSA Form for the Java HotSpot™ Client Compiler</p>
-<div class="highlight-python"><pre>Christian Wimmer
-April 2009
-Sun Microsystems, Inc.
-Institute for System Software
-Johannes Kepler University Linz, Austria
-Department of Computer Science
-University of California, Irvine</pre>
+  <div class="section" id="intrinsics">
+<h1>intrinsics<a class="headerlink" href="#intrinsics" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="c2intrinsics">
+<h2>C2のintrinsics<a class="headerlink" href="#c2intrinsics" title="Permalink to this headline">¶</a></h2>
+<p>JVMのintrinsicsは、 classfile/vmSymbolsに定義されている。</p>
+<p>c2コンパイラの場合、以下で各々のシンボルに変換される。</p>
+<p>opto/doCall optoコンパイラ内部のシンボルに変換</p>
+<p>opto/library_call.cpp  macroasm向けのシンボルに変換</p>
 </div>
-<p>Linear Scan Register Allocation</p>
-<div class="highlight-python"><pre>Christian Wimmer
-Linear Scan Register Allocation
-for the Java HotSpot™ Client Compiler
-A thesis submitted in partial satisfaction of
-the requirements for the degree of
-Master of Science
-(Diplom-Ingenieur)</pre>
-</div>
-<p>Design of the Java HotSpotTM Client Compiler for Java 6</p>
-<div class="highlight-python"><pre>Design of the Java HotSpotTM Client
-Compiler for Java 6
-THOMAS KOTZMANN, CHRISTIAN WIMMER
-and HANSPETER MO¨ SSENBO¨ CK
-Johannes Kepler University Linz
-and
-THOMAS RODRIGUEZ, KENNETH RUSSELL, and DAVID COX
-Sun Microsystems, Inc.</pre>
-</div>
-<p>Escape Analysis in the Context of Dynamic Compilation and Deoptimization</p>
-<div class="highlight-python"><pre>Thomas Kotzmann
-Escape Analysis in the Context of
-Dynamic Compilation and Deoptimization
-A PhD thesis
-submitted in partial satisfaction of the requirements for the degree of
-Doctor of Technical Sciences
-Institute for System Software
-Johannes Kepler University Linz</pre>
+<div class="section" id="arraycopy">
+<h2>arrayCopy<a class="headerlink" href="#arraycopy" title="Permalink to this headline">¶</a></h2>
+<p>jvmのarrayCopyは、x86archの下に、複数の型ごとにarrayCopyのgeneratorを用意していて、</p>
+<p>JITコンパイル時にgeneratorを切り替えている。</p>
+<p>generatorの下では、loopalignされた状態でcopyするっぽい。</p>
+<p>mmxとxmmの切り替えは実行時に行う見たいだけど、SSEやAVX向けはなし。</p>
 </div>
 </div>
 
@@ -97,11 +73,11 @@ Johannes Kepler University Linz</pre>
       <div class="bottomnav">
       
         <p>
-        «&#160;&#160;<a href="shark.html">Shark</a>
+        «&#160;&#160;<a href="javaone.html">2011 1014 java one</a>
         &#160;&#160;::&#160;&#160;
         <a class="uplink" href="../index.html">Contents</a>
         &#160;&#160;::&#160;&#160;
-        <a href="todo.html">todo</a>&#160;&#160;»
+        <a href="shark.html">Shark</a>&#160;&#160;»
         </p>
 
       </div>
