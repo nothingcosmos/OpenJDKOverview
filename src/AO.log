@@ -1,0 +1,78 @@
+======== Connection graph for  Sphere::intersect
+    71 JavaObject NoEscape  [[ 157F 159F 161F]]   71  Allocate  ===  57  6  7  8  1 ( 69  68  39  1  10  11  37  1  1  1  1  1  1  1  64  44 ) [[ 72  73  74  81  82  83 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) Vec::sub @ bci:0 Sphere::intersect @ bci:8 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8
+LocalVar [[ 71P]]   83  Proj  ===  71  [[ 84  88 ]] #5 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8
+LocalVar [[ 71P]]   88  CheckCastPP ===  85  83  [[ 161  159  159  157  157  161 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8
+
+
+======== Connection graph for  AO::rowRender
+   213 JavaObject NoEscape  [[ 272F 275F 278F 281F 284F 287F]]   213  Allocate  ===  3285  172  173  8  1 ( 211  210  26  1  10  11  12  13  14  15  72  174  175  176  125  177  194  208  1  1  1  1  1 ) [[ 214  215  216  223  224  225 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) AO::rowRender @ bci:93 !jvms: AO::rowRender @ bci:93
+LocalVar [[ 213P]]   225  Proj  ===  213  [[ 226  230  275  281  287 ]] #5 !jvms: AO::rowRender @ bci:93
+LocalVar [[ 213P]]   230  CheckCastPP ===  227  225  [[ 516  437  408  284  278  278  284  272  272 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: AO::rowRender @ bci:93
+
+   408 JavaObject NoEscape  [[ 626F 636F]]   408  Allocate  ===  382  224  298  8  1 ( 283  406  26  1  10  11  12  13  14  15  72  174  175  176  125  177  1  1  1  230  1  1  1 ) [[ 409  410  411  418  419  420 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) AO::rowRender @ bci:113 !jvms: AO::rowRender @ bci:113
+LocalVar [[ 408P]]   420  Proj  ===  408  [[ 421  425 ]] #5 !jvms: AO::rowRender @ bci:113
+LocalVar [[ 408P]]   425  CheckCastPP ===  422  420  [[ 2728  2422  437  437  2337  2318  2302  2210  516  516  2210  1948  1948  1911  1891  1795  1776  1760  636  1668  1668  1406  629  626  626  905  636  1406  652  1369  1349  723  1254  861  1235  1219  881  1155  1155  905 ]]  #Ray:NotNull:exact *  Oop:Ray:NotNull:exact * !jvms: AO::rowRender @ bci:113
+
+   437 JavaObject NoEscape NSR [[ 1426F 1444F 1449F 1968F 1986F 1991F 2645F 2663F 2669F]]   437 Allocate  ===  422  419  407  8  1 ( 211  210  26  1  10  11  12  13  14  15  72  174  175  176  125  177  1  1  1  230  1  1  1  425  425 ) [[ 438  439  440  447  448  449 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) AO::rowRender @ bci:117 !jvms: AO::rowRender @ bci:117
+LocalVar [[ 437P]]   449  Proj  ===  437  [[ 450  454 ]] #5 !jvms: AO::rowRender @ bci:117
+LocalVar [[ 437P]]   454  CheckCastPP ===  451  449  [[ 905  627  516 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: AO::rowRender @ bci:117
+
+   516 JavaObject NoEscape NSR [[ 573F 577F 581F 1549F 1554F 1560F 2091F 2096F 2102F 2526F 2534F 2540F]]   516  Allocate  ===  451  448  464  8  1 ( 211  210  26  1  10  11  12  13  14  15  72  174  175  176  125  177  1  1  1  230  1  1  1  425  425  454 ) [[ 517  518  519  526  527  528 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) AO::rowRender @ bci:127 !jvms: AO::rowRender @ bci:127
+LocalVar [[ 516P]]   528  Proj  ===  516  [[ 529  533 ]] #5 !jvms: AO::rowRender @ bci:127
+LocalVar [[ 516P]]   533  CheckCastPP ===  530  528  [[ 637  581  577  577  573  573  581 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: AO::rowRender @ bci:127
+
+   905 JavaObject NoEscape  [[ 992F 994F 996F]]   905 Allocate  ===  879  734  902  8  1 ( 211  210  26  1  10  11  12  13  14  15  72  174  175  176  125  177  1  1  1  1  425  669  1  886  669  425  1  1  1  1  1  1  1  454  893 ) [[ 906  907  908  915  916  917 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:160 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:160
+LocalVar [[ 905P]]   917  Proj  ===  905  [[ 918  922 ]] #5 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:160
+LocalVar [[ 905P]]   922  CheckCastPP ===  919  917  [[ 996  994  994  992  992  996 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:160
+
+  1406 JavaObject NoEscape  [[ 1493F 1495F 1497F]]   1406 Allocate  ===  1394  1297  1403  8  1 ( 211  210  26  1  10  11  12  13  14  15  72  174  175  176  125  177  1  1  1  1  425  669  1  1374  669  425  1  1  1  1  1  1  1  1401  1381 ) [[ 1407  1408  1409  1416  1417  1418 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:173 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:173
+LocalVar [[ 1406P]]   1418  Proj  ===  1406  [[ 1419  1423 ]] #5 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:173
+LocalVar [[ 1406P]]   1423  CheckCastPP ===  1420  1418  [[ 1497  1495  1495  1493  1493  1497 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:173
+
+  1948 JavaObject NoEscape  [[ 2035F 2037F 2039F]]   1948 Allocate  ===  1936  1838  1945  8  1 ( 211  210  26  1  10  11  12  13  14  15  72  174  175  176  125  177  1  1  1  1  425  669  1  1916  669  425  1  1  1  1  1  1  1  1943  1923 ) [[ 1949  1950  1951  1958  1959  1960 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:186 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:186
+LocalVar [[ 1948P]]   1960  Proj  ===  1948  [[ 1961  1965 ]] #5 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:186
+LocalVar [[ 1948P]]   1965  CheckCastPP ===  1962  1960  [[ 2039  2037  2037  2035  2035  2039 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::rowRender @ bci:186
+
+
+======== Connection graph for  AO::ambientOcclusion
+    29 JavaObject NoEscape  [[ 172F 176F 174F 2394F 2412F 2417F 2935F 2953F 2958F 3613F 3631F 3637F]]   29  Allocate  ===  5  6  7  8  1 ( 27  25  26  1  10  11  1  1  23  23  24  1  1  1  1  1  1  1  1  1  1  1  1  1  1  1 ) [[ 30  31  32  39  40  41 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) AO::ambientOcclusion @ bci:12 !jvms: AO::ambientOcclusion @ bci:12
+LocalVar [[ 29P]]   41  Proj  ===  29  [[ 42  46 ]] #5 !jvms: AO::ambientOcclusion @ bci:12
+LocalVar [[ 29P]]   46  CheckCastPP ===  43  41  [[ 1590  1617  3696  3304  3285  3269  176  3177  2915  2858  172  172  174  174  176  196  2763  226  2744  2728  261  274  2636  2374  306  318  2317  2218  356  1869  478  490  566  1869  687  699  775  2199  825  1825  940  952  1028  1690  1146  1158  1234  1468  2183  2119  1533 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: AO::ambientOcclusion @ bci:12
+LocalVar [[ 29P]]   2347  LoadP === _  2269  1588  [[ 2369 ]]  @Ray:exact+8 *, name=org, idx=15; #Vec:exact *  Oop:Vec:exact * !jvms: Sphere::intersect @ bci:1 AO::ambientOcclusion @ bci:331
+LocalVar [[ 29P]]   2369  CastPP  ===  2362  2347  [[ 2417  2412  2417  2374  2412  2394  2394 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !orig=[2684] !jvms: Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:331
+LocalVar [[ 29P]]   2888  LoadP === _  2814  1588  [[ 2910 ]]  @Ray:exact+8 *, name=org, idx=15; #Vec:exact *  Oop:Vec:exact * !jvms: Sphere::intersect @ bci:1 AO::ambientOcclusion @ bci:344
+LocalVar [[ 29P]]   2910  CastPP  ===  2903  2888  [[ 2958  2953  2958  2915  2953  2935  2935 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !orig=[3225] !jvms: Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:344
+LocalVar [[ 29P]]   3587  LoadP === _  3355  1588  [[ 3609 ]]  @Ray:exact+8 *, name=org, idx=15; #Vec:exact *  Oop:Vec:exact * !jvms: Plane::intersect @ bci:41 AO::ambientOcclusion @ bci:355
+LocalVar [[ 29P]]   3609  CastPP  ===  3602  3587  [[ 3637  3631  3637  3613  3613  3631 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Plane::intersect @ bci:48 AO::ambientOcclusion @ bci:355
+
+  1468 JavaObject NoEscape NSR [[ 1521F 1525F 1523F 2517F 2522F 2528F 3058F 3063F 3069F 3493F 3501F 3507F]]   1468  Allocate  ===  1455  325  1245  8  1 ( 27  25  26  1  10  1  327  283  23  23  1  46  213  328  1  1  1  1  1  1  1354  1410  1466  1  1  1 ) [[ 1469  1470  1471  1478  1479  1480 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) AO::ambientOcclusion @ bci:271 !jvms: AO::ambientOcclusion @ bci:271
+LocalVar [[ 1468P]]   1480  Proj  ===  1468  [[ 1481  1485 ]] #5 !jvms: AO::ambientOcclusion @ bci:271
+LocalVar [[ 1468P]]   1485  CheckCastPP ===  1482  1480  [[ 1602  1533  1525  1523  1523  1521  1525  1521 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: AO::ambientOcclusion @ bci:271
+
+  1533 JavaObject NoEscape  [[ 1588F 1591F 1601F]]   1533 Allocate  ===  1482  1479  1493  8  1 ( 64  1531  26  1  10  1  327  283  23  23  1  46  213  328  1  1  1  1  1  1  1  1  1  1485  1  1 ) [[ 1534  1535  1536  1543  1544  1545 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) AO::ambientOcclusion @ bci:286 !jvms: AO::ambientOcclusion @ bci:286
+LocalVar [[ 1533P]]   1545  Proj  ===  1533  [[ 1546  1550  1591 ]] #5 !jvms: AO::ambientOcclusion @ bci:286
+LocalVar [[ 1533P]]   1550  CheckCastPP ===  1547  1545  [[ 3696  3389  3304  3285  3269  3177  1601  3177  2915  2915  1594  1588  1588  2119  1601  2878  1617  2858  2763  1690  2744  1825  2728  2636  1845  2636  2374  2374  2337  2317  1869  1869  2218  2199  2183  2119 ]]  #Ray:NotNull:exact *  Oop:Ray:NotNull:exact * !jvms: AO::ambientOcclusion @ bci:286
+
+  1617 JavaObject NoEscape  [[ 1684F 1687F 2253F 1774F 1678F]]   1617 Allocate  ===  1547  1544  1558  8  1 ( 27  1615  26  1  10  1  327  283  23  23  1  46  213  328  1  1  1  1  1  1  1  1  1  1  1550  1 ) [[ 1618  1619  1620  1627  1628  1629 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) AO::ambientOcclusion @ bci:299 !jvms: AO::ambientOcclusion @ bci:299
+LocalVar [[ 1617P]]   1629  Proj  ===  1617  [[ 1630  1634  1687 ]] #5 !jvms: AO::ambientOcclusion @ bci:299
+LocalVar [[ 1617P]]   1634  CheckCastPP ===  1631  1629  [[ 3832  3696  3696  3690  3389  2199  3334  3304  3304  3285  1678  1678  1684  1684  1690  1690  3285  3269  3269  1777  1774  1774  1825  3177  3177  1845  2915  2915  2878  1869  1869  2858  2199  2793  2763  2763  2253  2744  2744  2728  2728  2636  2636  2374  2374  2337  2119  2119  2317  2253  2218  2183  2183  2248  2218 ]]  #Intersection:NotNull:exact *  Oop:Intersection:NotNull:exact * !jvms: AO::ambientOcclusion @ bci:299
+
+  1690 JavaObject NoEscape  [[]]   1690 Allocate  ===  1631  1628  1653  8  1 ( 27  25  26  1  10  1  327  283  23  23  1  46  213  328  1  1  1  1  1  1  1  1  1  1  1550  1  1634  1  1634 ) [[ 1691  1692  1693  1700  1701  1702 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) Intersection::<init> @ bci:16 AO::ambientOcclusion @ bci:303 !jvms: Intersection::<init> @ bci:16 AO::ambientOcclusion @ bci:303
+LocalVar [[ 1690P]]   1702  Proj  ===  1690  [[ 1703  1707 ]] #5 !jvms: Intersection::<init> @ bci:16 AO::ambientOcclusion @ bci:303
+LocalVar [[ 1690P]]   1707  CheckCastPP ===  1704  1702  [[ 1775 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Intersection::<init> @ bci:16 AO::ambientOcclusion @ bci:303
+
+  1869 JavaObject NoEscape  [[ 1956F 1960F 1958F]]   1869 Allocate  ===  1843  1701  1866  8  1 ( 27  25  26  1  10  1  327  283  23  23  1  46  213  328  1  1  1  1  1  1  1  1  1  1  1550  1634  1850  1634  1550  1  1  1  1  1  1  1  46  1857 ) [[ 1870  1871  1872  1879  1880  1881 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:318 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:318
+LocalVar [[ 1869P]]   1881  Proj  ===  1869  [[ 1882  1886 ]] #5 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:318
+LocalVar [[ 1869P]]   1886  CheckCastPP ===  1883  1881  [[ 1960  1958  1958  1956  1956  1960 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:318
+
+  2374 JavaObject NoEscape  [[ 2461F 2465F 2463F]]   2374 Allocate  ===  2362  2261  2371  8  1 ( 27  25  26  1  10  1  327  283  23  23  1  46  213  328  1  1  1  1  1  1  1  1  1  1  1550  1634  2342  1634  1550  1  1  1  1  1  1  1  2369  2349 ) [[ 2375  2376  2377  2384  2385  2386 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:331 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:331
+LocalVar [[ 2374P]]   2386  Proj  ===  2374  [[ 2387  2391 ]] #5 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:331
+LocalVar [[ 2374P]]   2391  CheckCastPP ===  2388  2386  [[ 2465  2463  2463  2461  2461  2465 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:331
+
+  2915 JavaObject NoEscape  [[ 3002F 3006F 3004F]]   2915 Allocate  ===  2903  2806  2912  8  1 ( 27  25  26  1  10  1  327  283  23  23  1  46  213  328  1  1  1  1  1  1  1  1  1  1  1550  1634  2883  1634  1550  1  1  1  1  1  1  1  2910  2890 ) [[ 2916  2917  2918  2925  2926  2927 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:344 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:344
+LocalVar [[ 2915P]]   2927  Proj  ===  2915  [[ 2928  2932 ]] #5 !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:344
+LocalVar [[ 2915P]]   2932  CheckCastPP ===  2929  2927  [[ 3006  3004  3004  3002  3002  3006 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Vec::sub @ bci:0 Sphere::intersect @ bci:8 AO::ambientOcclusion @ bci:344
+
+  3696 JavaObject NoEscape  [[ 3813F 3817F 3815F]]   3696 Allocate  ===  3678  3347  3694  8  1 ( 27  25  26  1  10  1  327  283  23  23  1  46  213  328  1  1  1  1  1  1  1  1  1  1  1  1634  1  1634  1550  1  1  3655  1 ) [[ 3697  3698  3699  3706  3707  3708 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int ) Plane::intersect @ bci:95 AO::ambientOcclusion @ bci:355 !jvms: Plane::intersect @ bci:95 AO::ambientOcclusion @ bci:355
+LocalVar [[ 3696P]]   3708  Proj  ===  3696  [[ 3709  3713 ]] #5 !jvms: Plane::intersect @ bci:95 AO::ambientOcclusion @ bci:355
+LocalVar [[ 3696P]]   3713  CheckCastPP ===  3710  3708  [[ 3830  3817  3815  3815  3813  3813  3817 ]]  #Vec:NotNull:exact *  Oop:Vec:NotNull:exact * !jvms: Plane::intersect @ bci:95 AO::ambientOcclusion @ bci:355

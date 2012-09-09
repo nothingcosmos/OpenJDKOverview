@@ -135,4 +135,5 @@ CC_GTは TypeInt::ONE CC_EQはTypeInt::ZERO
 結果は, PrintOptimizePtrCompareで出力出きるはず。OpenJDK8ビルドできず確認できないけど。
 
 
-===============================================================================
+
+
