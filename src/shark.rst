@@ -16,67 +16,71 @@ Sharkは、JavaのbytecodeをLLVMIRに変換し、LLVMIRのコンパイルをLLV
 
 Shark全体で12k lineです。
 
-上記と似たようなアプローチを取っているものに、GHCが挙げられます。
+Sharkの問題点
+
+HotSpotcompilerはGCにoopはこのレジスタにあるよという指示を出せるが、
+
+これはLLVMでは出来ない為、一旦メモリに落とす。これに関連する処理のオーバーヘッドが大きいとかなんとか。
+
+GHC LLVMBackend
+*******************************************************************************
 
 GHCは、GHC内部の低レベル中間表現であるC--から、LLRMIRへ変換し、Asmを生成します。
 
 GHCのLLVMIR向けCodegenは、2.2k程度のHaskellでかかれているとか。
 
-GHCのCommon CodeGen自体が11kで、役割分担がどの程度なのか良く分かっていないので、なんとも言い難いですが。。
+内包は、cmmから、llファイルへのpretty printするのみ。
 
-Sharkの問題点
-
-HotSpotcompilerはGCにoopはこのレジスタにあるよという指示を出せるが、
-
-これはLLVMでは出来ない為、一旦メモリに落とす。これに関連する処理のオーバーヘッドが大きい
-
+GHCのCommon CodeGen自体が11kと比較すると、非常にコンパクトです。
 
 ソースコード
 ===============================================================================
 
-llvmHeaders.hpp
-llvmValue.hpp
-sharkBlock.cpp
-sharkBlock.hpp
-sharkBuilder.cpp
-sharkBuilder.hpp
-sharkCacheDecache.cpp
-sharkCacheDecache.hpp
-sharkCodeBuffer.hpp
-sharkCompiler.cpp
-sharkCompiler.hpp
-sharkConstant.cpp
-sharkConstant.hpp
-sharkContext.cpp
-sharkContext.hpp
-sharkEntry.hpp
-sharkFunction.cpp
-sharkFunction.hpp
-sharkInliner.cpp
-sharkInliner.hpp
-sharkIntrinsics.cpp
-sharkIntrinsics.hpp
-sharkInvariants.cpp
-sharkInvariants.hpp
-sharkMemoryManager.cpp
-sharkMemoryManager.hpp
-sharkNativeWrapper.cpp
-sharkNativeWrapper.hpp
-sharkRuntime.cpp
-sharkRuntime.hpp
-sharkStack.cpp
-sharkStack.hpp
-sharkState.cpp
-sharkState.hpp
-sharkStateScanner.cpp
-sharkStateScanner.hpp
-sharkTopLevelBlock.cpp
-sharkTopLevelBlock.hpp
-sharkType.hpp
-sharkValue.cpp
-sharkValue.hpp
-shark_globals.cpp
-shark_globals.hpp
+code ::
+
+  llvmHeaders.hpp
+  llvmValue.hpp
+  sharkBlock.cpp
+  sharkBlock.hpp
+  sharkBuilder.cpp
+  sharkBuilder.hpp
+  sharkCacheDecache.cpp
+  sharkCacheDecache.hpp
+  sharkCodeBuffer.hpp
+  sharkCompiler.cpp
+  sharkCompiler.hpp
+  sharkConstant.cpp
+  sharkConstant.hpp
+  sharkContext.cpp
+  sharkContext.hpp
+  sharkEntry.hpp
+  sharkFunction.cpp
+  sharkFunction.hpp
+  sharkInliner.cpp
+  sharkInliner.hpp
+  sharkIntrinsics.cpp
+  sharkIntrinsics.hpp
+  sharkInvariants.cpp
+  sharkInvariants.hpp
+  sharkMemoryManager.cpp
+  sharkMemoryManager.hpp
+  sharkNativeWrapper.cpp
+  sharkNativeWrapper.hpp
+  sharkRuntime.cpp
+  sharkRuntime.hpp
+  sharkStack.cpp
+  sharkStack.hpp
+  sharkState.cpp
+  sharkState.hpp
+  sharkStateScanner.cpp
+  sharkStateScanner.hpp
+  sharkTopLevelBlock.cpp
+  sharkTopLevelBlock.hpp
+  sharkType.hpp
+  sharkValue.cpp
+  sharkValue.hpp
+  shark_globals.cpp
+  shark_globals.hpp
 
 
 Sharkの処理概要
@@ -87,41 +91,43 @@ Sharkの処理概要
 compile_method
 ===============================================================================
 
-void SharkCompiler::compile_method(ciEnv*    env, ciMethod* target, int       entry_bci);
+code ::
 
-
-typeflow analysis
-
-  get_flow_analysis()
-  get_osr_flow_analysis()
-
-  SharkFunctin::build()
-    SharkFunction()
-      initialize()
+  void SharkCompiler::compile_method(ciEnv*    env, ciMethod* target, int       entry_bci);
+  
+  
+  typeflow analysis
+  
+    get_flow_analysis()
+    get_osr_flow_analysis()
+  
+    SharkFunctin::build()
+      SharkFunction()
+        initialize()
+        
+      //SharkTargetInvariants()
       
-    //SharkTargetInvariants()
-    
-  generate_native_code()
-
+    generate_native_code()
+  
 
 SharkFunction::initialize(name)
 ===============================================================================
 
-Function::arg_iterator Argument(method, osr_buf, base_pc, thread)
+code ::
 
-new SharkTopLevelBlock()
-start_block->enter()
-
-
-block(i)->initialize()
-
-if (is_osr()) {
-  entry_state = new SharkOSREntryState()
-  builder()->CreateCall()
-
-
-
-typeFlow
+  Function::arg_iterator Argument(method, osr_buf, base_pc, thread)
+  
+  new SharkTopLevelBlock()
+  start_block->enter()
+  
+  
+  block(i)->initialize()
+  
+  if (is_osr()) {
+    entry_state = new SharkOSREntryState()
+    builder()->CreateCall()
+  
+  typeFlow
 
 
 generate_native_code()
@@ -130,31 +136,26 @@ generate_native_code()
 
 
 ===============================================================================
+
 ===============================================================================
 
-サブセクション
--------------------------------------------------------------------------------
--------------------------------------------------------------------------------
--------------------------------------------------------------------------------
--------------------------------------------------------------------------------
-
 .. image:: xxx.png
-
+..
 .. literalinclude:: xxx.js
-
+..
 .. graphviz::
-
-
-xxx ::
-
-  xxx
-
+..
+..
+..xxx ::
+..
+..  xxx
+..
 .. code-block:: python
-    :linenos:
-
+..    :linenos:
+..
 .. literalinclude:: src/test.py
-
-  :language: python
-  :linenos:
+..
+..  :language: python
+..  :linenos:
 
 
