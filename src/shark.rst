@@ -139,6 +139,7 @@ generate_native_code()
 
 ===============================================================================
 
+..
 .. image:: xxx.png
 ..
 .. literalinclude:: xxx.js
@@ -146,7 +147,7 @@ generate_native_code()
 .. graphviz::
 ..
 ..
-..xxx ::
+.. xxx ::
 ..
 ..  xxx
 ..

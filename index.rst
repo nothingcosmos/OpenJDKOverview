@@ -45,6 +45,7 @@ Contents:
    src/cpu
    src/javaone
    src/intrinsics
+   src/shark
    src/reference
    src/todo
    src/factIf
