@@ -12,7 +12,6 @@
 # serve to show the default.
 
 import sys, os
-import cloud_sptheme
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -27,7 +26,6 @@ extensions = [
     'sphinx.ext.graphviz',
     'sphinxcontrib.blockdiag',
     'sphinx.ext.autodoc',
-    'rst2pdf.pdfbuilder',
     'sphinxtogithub',
 #    'sphinx.ext.autodoc',
 #    'sphinx.ext.todo',
