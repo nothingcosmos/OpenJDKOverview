@@ -227,6 +227,9 @@ CAS.java ::
 
 server JITコンパイラ
 ===============================================================================
+
+ガッツが足りないので、細かいところは省略です。
+
 optoはServer JITコンパイラ ::
 
   opto/library_call.cpp:  case vmIntrinsics::_compareAndSwapInt:        return inline_unsafe_load_store(T_INT,    LS_cmpxchg);
@@ -263,7 +266,7 @@ JITコンパイルする際に、bytecodeからbitcode(LLVM IRってやつ)に�
 
 LLVM IRをLLVMにJITコンパイルさせて、アセンブラを出力します。
 
-  shark/sharkIntrinsics.cpp ::
+shark/sharkIntrinsics.cpp ::
 
   void SharkIntrinsics::do_Unsafe_compareAndSwapInt() {
     // Pop the arguments
